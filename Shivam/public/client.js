@@ -5,6 +5,35 @@ var label_length = 256;  //Length of each label in bits
 var max_labelValue = bigInt(2).pow(label_length).minus(1); // Max value a label can hold(to be used to generate random label)
 var R = bigInt.randBetween(0, max_labelValue.minus(1)).multiply(2).add(1);
 
+/***************TODO*********************/
+
+//Funcion to xor two Uint16Array variables
+function xor(label_a, label_b){
+
+	//Initialize array to store xor output
+	var output = new Uint16Array(array_length);
+
+	//Perform element-wise xor for the input arrays and store in output array
+	for (let i = 0; i < array_length; i++) {
+		output[i] = label_a[i] ^ label_b[i];
+	}
+
+	return output;
+}
+
+function hash(){}
+
+function garble_evaluator_half_gate(label){
+}
+
+function evaluate_evaluator_half_gate(){}
+
+function garble_generator_half_gate(val_a,key_b,){}
+
+function evaluate_generator_half_gate(){}
+
+/****************************************/
+
 //function to garble a gate given input labels and the values produced as output
 //Leftmost bit of each label is a permute bit, not to be used for encryption
 function garble_gate(val_a0, val_a1, val_b0, val_b1, val_00, val_01, val_10, val_11) {
