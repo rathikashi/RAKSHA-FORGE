@@ -1,0 +1,22 @@
+{
+  "name": "garbled_circuits",
+  "version": "1.0.0",
+  "description": "garbled circuits implementstion on javascript",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Shivam Agarwak, Rathi Kashi",
+  "license": "ISC",
+  "dependencies": {
+    "big-integer": "^1.6.48",
+    "crypto-js": "^4.0.0",
+    "expres": "0.0.5",
+    "express": "^4.17.1",
+    "libsodium-wrappers": "^0.7.8",
+    "libsodium-wrappers-sumo": "^0.7.8",
+    "object-sizeof": "^1.6.1",
+    "random-bigint": "0.0.1"
+  }
+}
