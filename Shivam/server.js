@@ -34,9 +34,11 @@ var test = random(128);
 console.log("sizeof bigInt test: " + sizeof(test));
 console.log(test);
 
+/****************************UINT 16 *********************/
+
 var temp = new Uint16Array([0,2,3,4,5,6,7,65535]);
 
-
+/******Convert to srring of size 16 bytes ***********/
 const key = [];
 for (let i = 0; i < 8; i++) {
 	key[i] = String.fromCharCode(temp[i]);
@@ -44,14 +46,18 @@ for (let i = 0; i < 8; i++) {
 
 var arr = key.join('');
 
+/**************************************************/
+
 console.log(arr);
 console.log("sizeof key: " + sizeof(arr));
 console.log("size of Uint16Array: " + sizeof(temp));
 
+/*********** Convert String to Uint Array *********/
 var new_temp = new Uint16Array(8);
 
 for (let i = 0; i < 8; i++) {
 	new_temp[i] = arr.charCodeAt(i);
 } 
 
+/***********************************************/
 console.log(new_temp);
