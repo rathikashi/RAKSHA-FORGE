@@ -81,7 +81,7 @@ function hash(key, id){
 	permutation[0] = k[array_length-1];
 
 	for (let i = 1; i < array_length; i++) {
-		permutation[i] = k[i-1];
+		permutation[i] = k[i-1] >> 8 + k[i-1] << 8;
 	}
 
 
