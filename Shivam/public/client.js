@@ -1,12 +1,53 @@
 // var bigInt = require("big-integer");
 // var CryptoJS = require("crypto-js");
+const crypto = require('crypto');
 
 var label_length = 256;  //Length of each label in bits
-var max_labelValue = bigInt(2).pow(label_length).minus(1); // Max value a label can hold(to be used to generate random label)
-var R = bigInt.randBetween(0, max_labelValue.minus(1)).multiply(2).add(1);
+var array_length = 8; // Length of Uint16Array to represent a label
+//var max_labelValue = bigInt(2).pow(label_length).minus(1); // Max value a label can hold(to be used to generate random label)
+var R = random_label(array_length);
+R[7] = R[7] | 1;
 
 /***************TODO*********************/
 
+function bytesTobigInt(bytes){
+	var big = 0n;
+	for (let i = 0; i < bytes.length; i++){
+		big = big << 16n;
+		big = big + BigInt(bytes[i]); 
+	}
+
+	return big;
+}
+
+//Only converts to Uint16Array of length of a label
+function bigIntToBytes(big){
+	var bytes = new Uint16Array(array_length);
+	for (let i = 0; i < bytes.length; i++){
+		bytes[i] = big & 65535n;
+		big = big >> 16; 
+	}
+
+	return bytes;
+}
+
+
+// Function to generate a random label of length size*16 bits
+function random_label(size){
+	var label = new Uint16Array(size);
+	var random = crypto.randomBytes(size*2);
+	console.log(random);
+	//generate a number between 0-65536 to store in a 2 byte element
+	for (let i = 0; i < size; i++) {
+		label[i] = random[2*i] ;
+		label[i] = label[i] << 8;
+		console.log("byte " + i + " first half: " + label[i]);
+		label[i] += random[2*i + 1];
+		console.log("byte " + i + " final: " + label[i]);
+	}
+
+	return label;
+}
 //Funcion to xor two Uint16Array variables
 function xor(label_a, label_b){
 
@@ -21,7 +62,31 @@ function xor(label_a, label_b){
 	return output;
 }
 
-function hash(){}
+//Function to calculate hash of a given value (Need to make sure if it has circular correlation robustness)
+function hash(key, id){
+
+	var k = new Uint16Array(array_length);
+	var temp_id = id;
+	
+	for (let i = 0; i < array_length; i++) {
+		k[i] = 2*key[i] ^ id;
+		temp_id = temp_id >> 16;
+		if(temp_id == 0){
+			temp_id = id;
+		}
+	}
+
+	//permutation array stores a random permutation of k
+	var permutation = new Uint16Array(array_length);
+	permutation[0] = k[array_length-1];
+
+	for (let i = 1; i < array_length; i++) {
+		permutation[i] = k[i-1];
+	}
+
+
+	return xor(permutation, k);
+}
 
 function garble_evaluator_half_gate(label){
 }
@@ -85,40 +150,39 @@ function garble_gate(val_a0, val_a1, val_b0, val_b1, val_00, val_01, val_10, val
 
 //function to garble a gate given input labels and the values produced as output
 //Leftmost bit of each label is also used as the permute bit
-function new_garble_gate(key_a, key_b, output_values) {
+function new_garble_gate(key_a, key_b, output_values, gate_id) {
 	
-	var label_a = new Array(2);
-	var label_b = new Array(2);
-	var label_c = new Array(2);
-	var p_a = new Array(2);
-	var p_b = new Array(2);
-	var garbled_table = new Array(3);
-	var hashes = new Array(4);
+	const label_a = new Array(2);
+	const label_b = new Array(2);
+	const label_c = new Array(2);
+	const p_a = new Array(2);
+	const p_b = new Array(2);
+	const garbled_table = new Array(3);
+	const hashes = new Array(4);
 
 	/********** extract point and permite bits from the given labels **********/
 
 	//extract point and permute bits for input a
-	label_a[0] = bigInt(key_a);  //label = {bbb.....bb||p_a0}
-	p_a[0] = (label_a[0]).mod(2).valueOf();
-	console.log("permute bit a0: " + p_a[0]);
+	label_a[0] = Uint16Array.from(key_a); //label = {bbb.....bb||p_a0}
+	p_a[0] = (label_a[0][7]) & 1;
 	p_a[1] = 1-p_a[0];  //p_a1 has the opposite value of p_a0
-	label_a[1] = (label_a[0]).xor(R);
+	label_a[1] = xor(label_a[0],R);
 
 	//extract point and permute bit for input b
-	label_b[0] = bigInt(key_b);
-	p_b[0] = label_b[0].mod(2).valueOf();
+	label_b[0] = Uint16Array.from(key_b);
+	p_b[0] = (label_b[0][7]) & 1;
 	p_b[1] = 1-p_b[0];
-	label_b[1] = label_b[0].xor(R);
+	label_b[1] = xor(label_b[0],R);
 
 	/**************************************************************************/
 
 	
 	/********* Calculating the required Hashes **********/
 
-	hashes[2*p_a[0] + p_b[0]] = bigInt(CryptoJS.SHA3(label_a[0].shiftLeft(label_length).add(label_b[0]).toString(), { outputLength: label_length }).toString(), 16);
-	hashes[2*p_a[0] + p_b[1]] = bigInt(CryptoJS.SHA3(label_a[0].shiftLeft(label_length).add(label_b[1]).toString(), { outputLength: label_length }).toString(), 16);
-	hashes[2*p_a[1] + p_b[0]] = bigInt(CryptoJS.SHA3(label_a[1].shiftLeft(label_length).add(label_b[0]).toString(), { outputLength: label_length }).toString(), 16);
-	hashes[2*p_a[1] + p_b[1]] = bigInt(CryptoJS.SHA3(label_a[1].shiftLeft(label_length).add(label_b[1]).toString(), { outputLength: label_length }).toString(), 16);
+	hashes[2*p_a[0] + p_b[0]] = hash(xor(label_a[0], label_b[0]), gate_id);
+	hashes[2*p_a[0] + p_b[1]] = hash(xor(label_a[0], label_b[1]), gate_id);
+	hashes[2*p_a[1] + p_b[0]] = hash(xor(label_a[1], label_b[0]), gate_id);
+	hashes[2*p_a[1] + p_b[1]] = hash(xor(label_a[1], label_b[1]), gate_id);
 
 	/****************************************************/
 
@@ -127,12 +191,12 @@ function new_garble_gate(key_a, key_b, output_values) {
 
 	// 2*p_a[0] + p_b[0] is the index of the output that will be at index 0 of the garble table
 	if(output_values[2*p_a[0] + p_b[0]] == 0){
-		label_c[0] = bigInt(hashes[0]);
-		label_c[1] = bigInt(label_c[0]).xor(R);
+		label_c[0] = hashes[0];
+		label_c[1] = xor(label_c[0], R);
 	}
 	else{
-		label_c[1] = bigInt(hashes[0]);
-		label_c[0] = bigInt(label_c[1]).xor(R);
+		label_c[1] = hashes[0];
+		label_c[0] = xor(label_c[1], R);
 	}
 
 	console.log("label_c0: " + label_c[0].toString());
@@ -144,10 +208,10 @@ function new_garble_gate(key_a, key_b, output_values) {
 
 	/********** Construct the garble table **********/
 
-	hashes[2*p_a[0] + p_b[0]] = hashes[2*p_a[0] + p_b[0]].xor(label_c[output_values[0]]).toString(16);
-	hashes[2*p_a[0] + p_b[1]] = hashes[2*p_a[0] + p_b[1]].xor(label_c[output_values[1]]).toString(16);
-	hashes[2*p_a[1] + p_b[0]] = hashes[2*p_a[1] + p_b[0]].xor(label_c[output_values[2]]).toString(16);
-	hashes[2*p_a[1] + p_b[1]] = hashes[2*p_a[1] + p_b[1]].xor(label_c[output_values[3]]).toString(16);
+	hashes[2*p_a[0] + p_b[0]] = xor(hashes[2*p_a[0] + p_b[0]],(label_c[output_values[0]]));
+	hashes[2*p_a[0] + p_b[1]] = xor(hashes[2*p_a[0] + p_b[1]],(label_c[output_values[1]]));
+	hashes[2*p_a[1] + p_b[0]] = xor(hashes[2*p_a[1] + p_b[0]],(label_c[output_values[2]]));
+	hashes[2*p_a[1] + p_b[1]] = xor(hashes[2*p_a[1] + p_b[1]],(label_c[output_values[3]]));
 
 	garbled_table[0] = hashes[1];
 	garbled_table[1] = hashes[2];
@@ -161,22 +225,22 @@ function new_garble_gate(key_a, key_b, output_values) {
 
 }
 
-function new_evaluate_gate(key_a, key_b, garbled_table){
+function new_evaluate_gate(key_a, key_b, garbled_table, gate_id){
 	/********** extract point and permite bits from the given keys **********/
 
-	var p_a = key_a.mod(2).valueOf();
-	var p_b = key_b.mod(2).valueOf();
+	var p_a = key_a[7] & 1;
+	var p_b = key_b[7] & 1;
 
-	var hash = bigInt(CryptoJS.SHA3(key_a.shiftLeft(label_length).add(key_b).toString(), { outputLength: label_length }).toString(), 16);
+	var hash_value = hash(xor(key_a, key_b), gate_id); 
 
 	index = 2*p_a + p_b;
 
 	if(index == 0){
-		return hash.toString();
+		return hash_value;
 	}
 
 	else{
-		return bigInt(garbled_table[index-1],16).xor(hash).toString();
+		return xor(garbled_table[index-1],hash_value);
 	}
 }
 
@@ -209,17 +273,15 @@ var r_a = Math.floor(Math.random() * 2); //random bit for point and permute for 
 var r_b = Math.floor(Math.random() * 2); //random bit for point and permute for party b
 
 //Generate random labels (range is inclusive of both values)
-var label_a0 = bigInt.randBetween(0, max_labelValue-1).multiply(2).add(r_a ^ 0);
-var label_a1 = bigInt.randBetween(0, max_labelValue-1).multiply(2).add(r_a ^ 1);
-var label_b0 = bigInt.randBetween(0, max_labelValue-1).multiply(2).add(r_b ^ 0);
-var label_b1 = bigInt.randBetween(0, max_labelValue-1).multiply(2).add(r_b ^ 1);
+var label_a0 = random_label(array_length);
+var label_b0 = random_label(array_length);
 
-var gate1 = garble_gate(label_a0, label_a1, label_b0, label_b1, 0, "999", 0, 0);
+//var gate1 = garble_gate(label_a0, label_a1, label_b0, label_b1, 0, "999", 0, 0);
 
-evaluate_gate(label_a0, label_b1, gate1);
+//evaluate_gate(label_a0, label_b1, gate1);
 
-var gate2 = new_garble_gate(label_a0, label_b0, [0,0,0,1]);
+var gate2 = new_garble_gate(label_a0, label_b0, [0,0,0,1], 3);
 
-var result = new_evaluate_gate(label_a0.xor(R), label_b0.xor(R), gate2);
+var result = new_evaluate_gate(xor(label_a0, R), label_b0, gate2, 3);
 
 console.log("result: " + result);
