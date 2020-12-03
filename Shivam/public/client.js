@@ -5,8 +5,8 @@ const crypto = require('crypto');
 var label_length = 256;  //Length of each label in bits
 var array_length = 8; // Length of Uint16Array to represent a label
 //var max_labelValue = bigInt(2).pow(label_length).minus(1); // Max value a label can hold(to be used to generate random label)
-var R = random_label(array_length);
-R[7] = R[7] | 1;
+var R = random_label(array_length); //Common random label
+R[array_length-1] = R[array_length-1] | 1; // Rightmost bit of R should always be 1 so that the labels corresponding to opposite input bits of a wire have opposite point and permute bits
 
 /***************TODO*********************/
 
@@ -174,7 +174,7 @@ function evaluate_generator_half_gate(label_b, garbled_table, gate_id){
 }
 
 function garble_evaluator_half_gate(bit_b, label_a, gate_id){
-	
+
 }
 
 function evaluate_evaluator_half_gate(){}
