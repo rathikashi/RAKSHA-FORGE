@@ -65,6 +65,7 @@ function xor(label_a, label_b){
 //Function to calculate hash of a given value (Need to make sure if it has circular correlation robustness)
 function hash(key, id){
 
+	
 	var k = new Uint16Array(array_length);
 	var temp_id = id;
 	
@@ -81,9 +82,8 @@ function hash(key, id){
 	permutation[0] = k[array_length-1];
 
 	for (let i = 1; i < array_length; i++) {
-		permutation[i] = k[i-1] >> 8 + k[i-1] << 8;
+		permutation[i] = (k[i-1] >> 8) + (k[i-1] << 8);
 	}
-
 
 	return xor(permutation, k);
 }
