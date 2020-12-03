@@ -41,9 +41,7 @@ function random_label(size){
 	for (let i = 0; i < size; i++) {
 		label[i] = random[2*i] ;
 		label[i] = label[i] << 8;
-		console.log("byte " + i + " first half: " + label[i]);
 		label[i] += random[2*i + 1];
-		console.log("byte " + i + " final: " + label[i]);
 	}
 
 	return label;
@@ -88,14 +86,98 @@ function hash(key, id){
 	return xor(permutation, k);
 }
 
-function garble_evaluator_half_gate(label){
+
+function garble_generator_half_gate(bit_a, label_b, gate_id){
+	const p_b = new Array(2);
+	const hashes = new Array(2);
+	const label_c = new Array(2);
+	let garbled_table = new Uint16Array(array_length);
+
+	/********** Extract point and permute bits from the label **********/
+
+	p_b[0] = label_b[array_length - 1] & 1;
+	p_b[1] = 1 - p_b[0];
+
+	/******************************************************************/
+
+	
+	/********* Calculate the required Hashes **********/
+
+	hashes[p_b[0]] = hash(label_b, gate_id);
+	hashes[p_b[1]] = hash(xor(label_b, R));
+
+	/*************************************************/
+
+	
+	/********** Set output label values based on the hash table and point and permute bits *********/
+
+	//Label corresponding to the first row in hash table takes the values of the hash stored in that row
+	if(bit_a == 0){
+		label_c[0] = Uint16Array.from(hash[0]);
+		label_c[1] = xor(label_c[0], R);
+	}
+
+	else{
+		if(p_b[0] == 1){
+			label_c[1] = Uint16Array.from(hash[0]);
+			label_c[0] = xor(label_c[1], R);
+		}
+
+		else{
+			label_c[0] = Uint16Array.from(hash[0]);
+			label_c[1] = xor(label_c[0], R);
+		}
+	}
+
+	/***********************************************************************************************/
+
+	
+	/********** Finish encryption using xor **********/
+
+	hashes[p_b[0]] = xor(hashes[p_b[0]], label_c[0]);
+
+	if(bit_a == 0){
+		hashes[p_b[1]] = xor(hashes[p_b[1]], label_c[0]);
+	}
+	else{
+		hashes[p_b[1]] = xor(hashes[p_b[1]], label_c[1]);
+	}
+
+	/************************************************/
+
+	garbled_table = hashes[1];
+
+	return garbled_table;
+
+}
+
+function evaluate_generator_half_gate(label_b, garbled_table, gate_id){
+
+	//Hash the input label
+	const hash_value = hash(label_b, gate_id);
+
+	//Extract point and permute bit
+	const p_b = label_b[array_length-1] & 1;
+
+	/********* Return output label based on point and permite bit **********/
+
+	if(p_b == 0){
+		return hash_value;
+	}
+
+	else{
+		return xor(hash_value, garbled_table);
+	}
+
+	/**********************************************************************/
+
+}
+
+function garble_evaluator_half_gate(bit_b, label_a, gate_id){
+	
 }
 
 function evaluate_evaluator_half_gate(){}
-
-function garble_generator_half_gate(val_a,key_b,){}
-
-function evaluate_generator_half_gate(){}
 
 /****************************************/
 
@@ -164,13 +246,13 @@ function new_garble_gate(key_a, key_b, output_values, gate_id) {
 
 	//extract point and permute bits for input a
 	label_a[0] = Uint16Array.from(key_a); //label = {bbb.....bb||p_a0}
-	p_a[0] = (label_a[0][7]) & 1;
+	p_a[0] = (label_a[0][array_length-1]) & 1;
 	p_a[1] = 1-p_a[0];  //p_a1 has the opposite value of p_a0
 	label_a[1] = xor(label_a[0],R);
 
 	//extract point and permute bit for input b
 	label_b[0] = Uint16Array.from(key_b);
-	p_b[0] = (label_b[0][7]) & 1;
+	p_b[0] = (label_b[0][array_length-1]) & 1;
 	p_b[1] = 1-p_b[0];
 	label_b[1] = xor(label_b[0],R);
 
@@ -191,11 +273,11 @@ function new_garble_gate(key_a, key_b, output_values, gate_id) {
 
 	// 2*p_a[0] + p_b[0] is the index of the output that will be at index 0 of the garble table
 	if(output_values[2*p_a[0] + p_b[0]] == 0){
-		label_c[0] = hashes[0];
+		label_c[0] = Uint16Array.from(hashes[0]);
 		label_c[1] = xor(label_c[0], R);
 	}
 	else{
-		label_c[1] = hashes[0];
+		label_c[1] = Uint16Array.from(hashes[0]);
 		label_c[0] = xor(label_c[1], R);
 	}
 
@@ -228,8 +310,8 @@ function new_garble_gate(key_a, key_b, output_values, gate_id) {
 function new_evaluate_gate(key_a, key_b, garbled_table, gate_id){
 	/********** extract point and permite bits from the given keys **********/
 
-	var p_a = key_a[7] & 1;
-	var p_b = key_b[7] & 1;
+	var p_a = key_a[array_length-1] & 1;
+	var p_b = key_b[array_length-1] & 1;
 
 	var hash_value = hash(xor(key_a, key_b), gate_id); 
 
