@@ -87,67 +87,87 @@ function hash(key, id){
 }
 
 
-function garble_generator_half_gate(bit_a, label_b, gate_id){
-	const p_b = new Array(2);
+function garble_generator_half_gate(bit_a, label_b, gate_id, alpha){
+	//const p_b = new Array(2);
 	const hashes = new Array(2);
-	const label_c = new Array(2);
+	//const label_c = new Array(2);
 	let garbled_table = new Uint16Array(array_length);
 
-	/********** Extract point and permute bits from the label **********/
+	// /********** Extract point and permute bits from the label **********/
 
-	p_b[0] = label_b[array_length - 1] & 1;
-	p_b[1] = 1 - p_b[0];
+	const p_b = label_b[array_length - 1] & 1;
+	//p_b[1] = 1 - p_b[0];
 
-	/******************************************************************/
-
-	
-	/********* Calculate the required Hashes **********/
-
-	hashes[p_b[0]] = hash(label_b, gate_id);
-	hashes[p_b[1]] = hash(xor(label_b, R));
-
-	/*************************************************/
+	// /******************************************************************/
 
 	
-	/********** Set output label values based on the hash table and point and permute bits *********/
+	// /********* Calculate the required Hashes **********/
 
-	//Label corresponding to the first row in hash table takes the values of the hash stored in that row
-	if(bit_a == 0){
-		label_c[0] = Uint16Array.from(hash[0]);
-		label_c[1] = xor(label_c[0], R);
-	}
+	// hashes[p_b[0]] = hash(label_b, gate_id);
+	// hashes[p_b[1]] = hash(xor(label_b, R));
 
-	else{
-		if(p_b[0] == 1){
-			label_c[1] = Uint16Array.from(hash[0]);
-			label_c[0] = xor(label_c[1], R);
-		}
-
-		else{
-			label_c[0] = Uint16Array.from(hash[0]);
-			label_c[1] = xor(label_c[0], R);
-		}
-	}
-
-	/***********************************************************************************************/
+	// /*************************************************/
 
 	
-	/********** Finish encryption using xor **********/
+	// /********** Set output label values based on the hash table and point and permute bits *********/
 
-	hashes[p_b[0]] = xor(hashes[p_b[0]], label_c[0]);
+	// //Label corresponding to the first row in hash table takes the values of the hash stored in that row
+	// if(bit_a == 0){
+	// 	label_c[0] = Uint16Array.from(hash[0]);
+	// 	label_c[1] = xor(label_c[0], R);
+	// }
 
-	if(bit_a == 0){
-		hashes[p_b[1]] = xor(hashes[p_b[1]], label_c[0]);
+	// else{
+	// 	if(p_b[0] == 1){
+	// 		label_c[1] = Uint16Array.from(hash[0]);
+	// 		label_c[0] = xor(label_c[1], R);
+	// 	}
+
+	// 	else{
+	// 		label_c[0] = Uint16Array.from(hash[0]);
+	// 		label_c[1] = xor(label_c[0], R);
+	// 	}
+	// }
+
+	// /***********************************************************************************************/
+
+	
+	// /********** Finish encryption using xor **********/
+
+	// hashes[p_b[0]] = xor(hashes[p_b[0]], label_c[0]);
+
+	// if(bit_a == 0){
+	// 	hashes[p_b[1]] = xor(hashes[p_b[1]], label_c[0]);
+	// }
+	// else{
+	// 	hashes[p_b[1]] = xor(hashes[p_b[1]], label_c[1]);
+	// }
+
+	// /************************************************/
+
+	// garbled_table = hashes[1];
+
+	// return garbled_table;
+
+	const b_labels = [Uint16Array.from(label_b), xor(label_b, R)];
+	console.log("p_b: " + p_b);
+	hashes[0] = hash(label_b, gate_id);
+	hashes[1] = hash(xor(label_b, R), gate_id);
+
+	let label_c = hashes[p_b];
+	if(( (p_b ^ alpha[0]) & (bit_a ^ alpha[1]) ) ^ alpha[2] ){
+		label_c = xor(label_c, R)
+	} 
+
+	console.log("label_c0: ", label_c.toString());
+	console.log("label_c1: ", xor(label_c, R).toString());
+
+	garble_gate = xor(hashes[0], hashes[1]);
+	if(bit_a ^ alpha[1]){
+		garble_gate = xor(garble_gate, R);
 	}
-	else{
-		hashes[p_b[1]] = xor(hashes[p_b[1]], label_c[1]);
-	}
 
-	/************************************************/
-
-	garbled_table = hashes[1];
-
-	return garbled_table;
+	return garble_gate
 
 }
 
@@ -173,11 +193,29 @@ function evaluate_generator_half_gate(label_b, garbled_table, gate_id){
 
 }
 
-function garble_evaluator_half_gate(bit_b, label_a, gate_id){
+function garble_evaluator_half_gate(label_a, label_b, gate_id, alpha){
+	const hashes = new Array(2);
+	let garbled_table = new Uint16Array(array_length);
+	const p_b = label_b[array_length - 1] & 1;
+
+	hashes[0] = hash(label_b, gate_id);
+	hashes[1] = hash(xor(label_b, R), gate_id);
+
+	let label_c = hashes[p_b];
+
+	garbled_table = xor(xor(hashes[0], hashes[1]), label_a);
+
+	if(alpha[0] == 1){
+		garbled_table = xor(garbled_table, R);
+	}
+
+	return garble_gate;
 
 }
 
-function evaluate_evaluator_half_gate(){}
+function evaluate_evaluator_half_gate(label_b, label_a, bit_b,garbled_table, gate_id){
+	const hash_value = hash()
+}
 
 /****************************************/
 
@@ -351,6 +389,126 @@ function evaluate_gate(val_a, val_b, garbled_table){
 
 }
 
+function garble_AND_gate(label_a, label_b, gate_id){
+	const label_c = new Array(2);
+	const garbled_table = new Array(2);
+	const hashes_a = new Array(2);
+	const hashes_b = new Array(2);
+
+	const p_a = (label_a[array_length-1]) & 1;
+	const p_b = (label_b[array_length-1]) & 1;
+
+	const j1 = gate_id*2;
+	const j2 = gate_id*2 + 1;
+
+	/********** First half table *********/
+
+	hashes_a[0] = hash(label_a, j1);
+	hashes_a[1] = hash( xor(label_a, R), j1);
+
+	garbled_table[0] = xor(hashes_a[0], hashes_a[1] );
+	if(p_b == 1){
+		garbled_table[0] = xor(garbled_table[0], R);
+	}
+	label_c[0] = hashes_a[0];
+	if(p_a == 1){
+		label_c[0] = xor(label_c[0], garbled_table[0]);
+	}
+
+	/*************************************/
+
+	/********** Second half table **********/
+
+	hashes_b[0] = hash(label_b, j2);
+	hashes_b[1] = hash( xor(label_b, R), j2);
+
+	garbled_table[1] = xor(hashes_b[0], hashes_b[1] );
+	garbled_table[1] = xor(garbled_table[1], label_a);
+	label_c[1] = hashes_b[0];
+	if(p_b == 1){
+		label_c[1] = xor( label_c[1], xor(garbled_table[1],label_a) );
+	}
+
+	/***************************************/
+
+	//Combining the two halves
+
+	const output_label = xor(label_c[0], label_c[1]);
+
+	//Send garbled table
+	var table_entries = [];
+	for (let i = 0; i < array_length; i++) {
+		table_entries[i] = String.fromCharCode(garbled_table[0][i]);
+	}
+
+	table_enteries = [];
+	for (let i = array_length; i < array_length * 2; i++) {
+		table_entries[i] = String.fromCharCode(garbled_table[1][i]);
+	}
+
+	table_entries = table_entries.join(''); //send this
+
+
+
+}
+
+function evaluate_AND_gate(label_a, label_b, gate_id){
+
+	const label_c = new Array(2);
+	const garbled_table = new Array(2);
+	
+	const s_a = (label_a[array_length-1]) & 1;
+	const s_b = (label_b[array_length-1]) & 1;
+
+	const j1 = gate_id*2;
+	const j2 = gate_id*2 + 1;
+
+	//Recieve garbled table
+
+	var table_entries; // Recieve this
+
+	var entry1 = new Uint16Array(8);
+
+	for (let i = 0; i < array_length; i++) {
+		entry1[i] = table_entries.charCodeAt(i);
+	}
+
+	garbled_table[0] = entry1;
+
+	var entry2 = new Uint16Array(8);
+
+	for (let i = array_length; i < array_length * 2; i++) {
+		entry2[i - array_length] = table_entries.charCodeAt(i);
+	}
+
+	garbled_table[1] = entry2;
+
+	/********** Evaluate first half-gate **********/
+
+	label_c[0] = hash(label_a, j1);
+	if(s_a == 1){
+		label_c[0] = xor( label_c[0], garbled_table[0]);
+	}
+
+	/**********************************************/
+
+	/********** Evaluate second half-gate **********/
+
+	label_c[1] = hash(label_b, j1);
+	if(s_b == 1){
+		label_c[1] = xor( label_c[1], xor(garbled_table[1], label_a);
+	}
+
+	/***********************************************/
+
+	//Combine the two halves
+
+	const output_label = xor(label_c[0], label_c[1]);
+
+
+}
+
+
 var r_a = Math.floor(Math.random() * 2); //random bit for point and permute for party a
 var r_b = Math.floor(Math.random() * 2); //random bit for point and permute for party b
 
@@ -367,3 +525,9 @@ var gate2 = new_garble_gate(label_a0, label_b0, [0,0,0,1], 3);
 var result = new_evaluate_gate(xor(label_a0, R), label_b0, gate2, 3);
 
 console.log("result: " + result);
+
+var gate3 = garble_generator_half_gate(0, label_b0, 3, [1,1,1]);
+
+result = evaluate_generator_half_gate(xor(label_b0,R), gate3, 3);
+
+console.log("result: " + result.toString());
