@@ -389,34 +389,49 @@ function evaluate_gate(val_a, val_b, garbled_table){
 
 }
 
-function garble_AND_gate(label_a, label_b, gate_id){
+//function to garble a gate given input labels and the values produced as output
+//Leftmost bit of each label is also used as the permute bit
+function garble_AND_gate(label_a, label_b, gate_id, alphas){
+	
 	const label_c = new Array(2);
 	const garbled_table = new Array(2);
 	const hashes_a = new Array(2);
 	const hashes_b = new Array(2);
 
+	
+	/********* Extracting point and permute bits **********/
+
 	const p_a = (label_a[array_length-1]) & 1;
 	const p_b = (label_b[array_length-1]) & 1;
+
+	/******************************************************/
+
+	
+	/********** Known constant for hashing **********/
 
 	const j1 = gate_id*2;
 	const j2 = gate_id*2 + 1;
 
+	/***********************************************/
+
+	
 	/********** First half table *********/
 
 	hashes_a[0] = hash(label_a, j1);
 	hashes_a[1] = hash( xor(label_a, R), j1);
 
 	garbled_table[0] = xor(hashes_a[0], hashes_a[1] );
-	if(p_b == 1){
+	if((p_b ^ alphas[1]) == 1){
 		garbled_table[0] = xor(garbled_table[0], R);
 	}
-	label_c[0] = hashes_a[0];
-	if(p_a == 1){
-		label_c[0] = xor(label_c[0], garbled_table[0]);
+	label_c[0] = hashes_a[p_a];
+	if((p_a ^ alphas[0]) & (p_b ^ alphas[1]) ^ alphas[2] == 1){
+		label_c[0] = xor(label_c[0], R);
 	}
 
 	/*************************************/
 
+	
 	/********** Second half table **********/
 
 	hashes_b[0] = hash(label_b, j2);
@@ -424,18 +439,28 @@ function garble_AND_gate(label_a, label_b, gate_id){
 
 	garbled_table[1] = xor(hashes_b[0], hashes_b[1] );
 	garbled_table[1] = xor(garbled_table[1], label_a);
-	label_c[1] = hashes_b[0];
+	if(alphas[0] == 1){
+		garbled_table[1] = xor(garbled_table[1], R);
+	}
 	if(p_b == 1){
-		label_c[1] = xor( label_c[1], xor(garbled_table[1],label_a) );
+		label_c[1] = hashes_b[1];
+	}
+	else{
+		label_c[1] = hashes_b[0];
 	}
 
 	/***************************************/
 
-	//Combining the two halves
+	/********** Combining the two halves **********/
 
 	const output_label = xor(label_c[0], label_c[1]);
 
-	//Send garbled table
+	/**********************************************/
+
+	
+	/********** Sending the table to the evaluator **********/
+	
+	//Converting the garbled table entries to a string
 	var table_entries = [];
 	for (let i = 0; i < array_length; i++) {
 		table_entries[i] = String.fromCharCode(garbled_table[0][i]);
@@ -448,14 +473,18 @@ function garble_AND_gate(label_a, label_b, gate_id){
 
 	table_entries = table_entries.join(''); //send this
 
+	/*******************************************************/
+
+	return garbled_table;
+
 
 
 }
 
-function evaluate_AND_gate(label_a, label_b, gate_id){
+function evaluate_AND_gate(label_a, label_b, gate_id, garbled_table){
 
 	const label_c = new Array(2);
-	const garbled_table = new Array(2);
+	//const garbled_table = new Array(2);
 	
 	const s_a = (label_a[array_length-1]) & 1;
 	const s_b = (label_b[array_length-1]) & 1;
@@ -463,7 +492,7 @@ function evaluate_AND_gate(label_a, label_b, gate_id){
 	const j1 = gate_id*2;
 	const j2 = gate_id*2 + 1;
 
-	//Recieve garbled table
+	Recieve garbled table
 
 	var table_entries; // Recieve this
 
@@ -494,9 +523,9 @@ function evaluate_AND_gate(label_a, label_b, gate_id){
 
 	/********** Evaluate second half-gate **********/
 
-	label_c[1] = hash(label_b, j1);
+	label_c[1] = hash(label_b, j2);
 	if(s_b == 1){
-		label_c[1] = xor( label_c[1], xor(garbled_table[1], label_a);
+		label_c[1] = xor( label_c[1], xor(garbled_table[1], label_a));
 	}
 
 	/***********************************************/
@@ -504,6 +533,8 @@ function evaluate_AND_gate(label_a, label_b, gate_id){
 	//Combine the two halves
 
 	const output_label = xor(label_c[0], label_c[1]);
+
+	return output_label;
 
 
 }
@@ -526,8 +557,8 @@ var result = new_evaluate_gate(xor(label_a0, R), label_b0, gate2, 3);
 
 console.log("result: " + result);
 
-var gate3 = garble_generator_half_gate(0, label_b0, 3, [1,1,1]);
+var gate3 = garble_AND_gate(label_a0, label_b0,2, [1,1,1]);
 
-result = evaluate_generator_half_gate(xor(label_b0,R), gate3, 3);
+result = evaluate_AND_gate(label_a0, label_b0, 2, gate3);
 
-console.log("result: " + result.toString());
+console.log("result_label: " + result.toString());
