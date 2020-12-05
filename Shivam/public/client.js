@@ -451,6 +451,7 @@ function garble_AND_gate(label_a, label_b, gate_id, alphas){
 
 	/***************************************/
 
+	
 	/********** Combining the two halves **********/
 
 	const output_label = xor(label_c[0], label_c[1]);
@@ -486,13 +487,23 @@ function evaluate_AND_gate(label_a, label_b, gate_id, garbled_table){
 	const label_c = new Array(2);
 	//const garbled_table = new Array(2);
 	
+	/********* Extracting point and permute bits **********/
+
 	const s_a = (label_a[array_length-1]) & 1;
 	const s_b = (label_b[array_length-1]) & 1;
+
+	/*****************************************************/
+
+	
+	/********** Known constant for hashing **********/
 
 	const j1 = gate_id*2;
 	const j2 = gate_id*2 + 1;
 
-	Recieve garbled table
+	/***********************************************/
+	
+	
+	/********** Recieve garbled table **********/
 
 	var table_entries; // Recieve this
 
@@ -512,6 +523,9 @@ function evaluate_AND_gate(label_a, label_b, gate_id, garbled_table){
 
 	garbled_table[1] = entry2;
 
+	/******************************************/
+
+	
 	/********** Evaluate first half-gate **********/
 
 	label_c[0] = hash(label_a, j1);
