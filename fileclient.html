@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal working example</title>
+</head>
+<body>
+
+  <select id="partytype">
+    <option value="Garbler">Garbler</option>
+    <option value="Evaluator">Evaluator</option>
+  </select>
+
+  <select id="circuit">
+    <optgroup label="Arithmetic">
+      <option value="arith-add-32-bit-old.txt" selected="selected">32-bit Addition</option>
+      <option value="arith-add-64-bit-old.txt">64-bit Addition</option>
+      <option value="arith-add-64-bit-truncated.txt">64-bit Truncated Addition</option>
+      <option value="arith-div-64-bit.txt">64-bit Division</option>
+      <option value="arith-mul-32-bit-old.txt">32-bit Multiplication</option>
+      <option value="arith-mul-64-bit-truncated.txt">64-bit Truncated Multiplication</option>
+      <option value="arith-mul-64-bit.txt">64-bit Multiplication</option>
+      <option value="arith-sub-64-bit.txt">64-bit Subtraction</option>
+    </optgroup>
+
+    <optgroup label="Comparison">
+      <option value="compare-eq-zero-64-bit.txt">64-bit Equal to Zero (input 32-bits each)</option>
+      <option value="compare-eq-zero-128-bit-with-nan.txt">128-bit Equal to Zero</option>
+      <option value="compare-lt-32-bit-signed-old.txt">32-bit Signed Less Than</option>
+      <option value="compare-lt-32-bit-unsigned-old.txt">32-bit Unsigned Less Than</option>
+      <option value="compare-lteq-32-bit-signed-old.txt">32-bit Signed Less Than or Equal</option>
+      <option value="compare-lteq-32-bit-unsigned-old.txt">32-bit Unsigned Less Than or Equal</option>
+      <option value="testing.txt">testing</option>
+    </optgroup>
+  </select>
+    <br>
+    <p style="margin-top: 1em; margin-bottom: 0;">Enter a string to compute on and the maximum encryptions to run in parallel:</p>
+    <select id="base" onchange="countbits()">
+      <option value="number">Decimal</option>
+      <option value="bits">Binary</option>
+      <option value="hex">Hexidecimal</option>
+    <input id="input" onkeyup="countbits()" autocomplete="off" style="margin-top: 1em; margin-bottom: 0.5em; font-family: monospace; width: 40em;">
+    <br>
+    <pre id="bitsCount">Entered 0 bits</pre><br>
+    <button id="button" onclick="start()">Compute</button>
+    <ul id="events"></ul>
+
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+                
+        // const crypto = require('crypto');
+        var sodium = require('libsodium-wrappers-sumo');
+
+
+        var label_length = 128;  //Length of each label in bits
+        var array_length = 8; // Length of Uint16Array to represent a label
+        //var max_labelValue = bigInt(2).pow(label_length).minus(1); // Max value a label can hold(to be used to generate random label)
+        var R = random_label(array_length); //Common rsandom label
+        R[array_length-1] = R[array_length-1] | 1; // Rightmost bit of R should always be 1 so that the labels corresponding to opposite input bits of a wire have opposite point and permute bits
+
+       function countbits() {
+          const input = document.getElementById('input').value;
+          const base = document.getElementById('base').value;
+
+          let count = input.length;
+          if (base === 'hex') {
+            count *= 4;
+          }
+          if (base === 'number') {
+            count = Number(input).toString(2).length;
+          }
+          console.log(count);
+         document.getElementById('bitsCount').innerHTML = 'Entered ' + count + ' bits';
+        };
+
+        function randomBytes(width) {
+          var out = new Uint8Array(width);
+          (global.crypto || global.msCrypto).getRandomValues(out);
+          return out;
+          }
+
+        //Funcion to xor two Uint16Array variables
+        function xor(label_a, label_b){
+
+          //Initialize array to store xor output
+          var output = new Uint16Array(array_length);
+
+          //Perform element-wise xor for the input arrays and store in output array
+          for (let i = 0; i < array_length; i++) {
+            output[i] = label_a[i] ^ label_b[i];
+          }
+
+          return output;
+        }
+
+        //Function to calculate hash of a given value (Need to make sure if it has circular correlation robustness)
+        function hash(key, id){
+
+          
+          var k = new Uint16Array(array_length);
+          var temp_id = id;
+          
+          for (let i = 0; i < array_length; i++) {
+            k[i] = 2*key[i] ^ id;
+            temp_id = temp_id >> 16;
+            if(temp_id == 0){
+              temp_id = id;
+            }
+          }
+
+          //permutation array stores a random permutation of k
+          var permutation = new Uint16Array(array_length);
+          permutation[0] = k[array_length-1];
+
+          for (let i = 1; i < array_length; i++) {
+            permutation[i] = (k[i-1] >> 8) + (k[i-1] << 8);
+          }
+
+          return xor(permutation, k);
+        }
+        function Gate(id, operation, input_wires, output_wire, garbled_table){
+          this.id = id;
+          this.operation = operation;
+          this.input_wires = input_wires;
+          this.output_wire = output_wire;
+          this.garbled_table = garbled_table;
+
+          if (this.operation === 'INV') {
+            this.operation = 'NOT';
+          }
+      }
+
+      function Circuit(wires_count, garbler_input_size, evaluator_input_size, output_size, label_size) {
+          this.wires_count = wires_count;
+          this.garbler_input_size = garbler_input_size;
+          this.evaluator_input_size = evaluator_input_size;
+          this.output_size = output_size;
+          this.label_size = label_size;
+        
+          this.gates = [];
+        }
+
+        const gates = function(gate) {
+            return gate;
+        }
+        const seedrandom = require('seedrandom');
+        const $events = document.getElementById('events');
+
+        const newItem = (content) => {
+          const item = document.createElement('li');
+          item.innerText = content;
+          return item;
+        };
+
+        function random_label(size, rng = seedrandom()){
+          var label = new Uint16Array(size);
+          // console.log(random);
+          //generate a number between 0-65535 to store in a 2 byte element
+          for (let i = 0; i < size; i++) {
+            label[i] = Math.floor(rng() * 65535);
+          }
+
+          return label;
+        }
+
+        // Function for garbled assignment
+        function generateLabels(count, labelSize, seed){
+            const garbled_assignment = [];
+            var rng = seedrandom(seed);
+            for (var i=0; i<count; i++){
+                garbled_assignment[i] = random_label(labelSize, rng)
+            }
+
+            return garbled_assignment;
+        }
+
+
+        const socket = io();
+
+
+        function start() {
+          sodium.ready.then( function () {
+            const circuit = document.getElementById('circuit').value;
+            const role = document.getElementById('partytype').value;
+
+            console.log(role);
+
+            socket.emit('circuitchoice', {circuit});
+
+            socket.on('circuitfile', (c) => {
+              console.log(c);
+              $events.appendChild(newItem(JSON.stringify(c)));
+            });
+
+            if(role == 'Garbler'){
+              GarblerRun(c);
+            }
+            else{
+              EvaluatorRun(c);
+            }
+        });
+      }
+      
+
+        socket.on('connect', () => {
+          $events.appendChild(newItem('connect'));
+        });
+
+        function GarblerRun(circuit, input){
+          wire_labels = generateLabels(circuit.garbler_input_size + circuit.evaluator_input_size, 8, 1);
+
+          for (let i = 0; i < circuit.garbler_input_size; i++) {
+            const label = wire_labels[i];
+            if(input[i]==1){
+              label = xor(label,R);
+            }
+            socket.emit('GarblerWire', [i,label]);
+          }
+          
+
+          // Send the evaluator the first half of the input labels directly.
+          for (let i = 0; i < evaluatorInputSize; i++) {
+            const index = i + garblerInputSize;
+            socket.emit('StartOT', index);
+            const c = 0;
+            const a = sodium.crypto_core_ristretto255_scalar_random();
+            console.log("a: " + a);
+            let A = sodium.crypto_scalarmult_ristretto255_base(a);
+            console.log("A: " + A);
+            socket.emit('OT-A', A);
+            socket.on('OT-B', (b) => {
+              const B = Uint8Array.from(b);
+              let k0 = sodium.crypto_scalarmult_ristretto255(a, B);
+              let k1 = sodium.crypto_scalarmult_ristretto255(a, sodium.crypto_core_ristretto255_sub(B, A));
+
+              k0 = sodium.crypto_generichash(16, k0);
+              k1 = sodium.crypto_generichash(16, k1);
+
+              const e0 = encrypt_generic(m0, k0, 3);
+              const e1 = encrypt_generic(m1, k1, 3);
+
+              e = [e0,e1];
+              socket.emit('OT-E', e);
+          });
+          }
+
+          
+          //   let i = 0;
+          //   while(i<circuit.gates.length){
+          //   switch(circuit.gates[i].operation){
+          //     case 'AND':
+          //       [garbledTable, wire_labels[circuit.gates[i].output_wire]] = garble_AND_gate(wire_labels_g[circuit.gates[i].input_wires[0]], wire_labels_g[circuit.gates[i].input_wires[1]], gate_id, [0,0,0]);
+          //       socket.emit(garbledTable);
+          //       break;
+          //     case 'LOR':
+          //       [garbledTable, wire_labels[circuit.gates[i].output_wire]] = garble_AND_gate(wire_labels_g[circuit.gates[i].input_wires[0]], wire_labels_g[circuit.gates[i].input_wires[1]], gate_id, [1,1,1]);
+          //       socket.emit(garbledTable);
+          //       break;
+          //     case 'INV':
+          //       // garble NOT
+          //       wire_labels[circuit.gates[i].output_wire] = garble_NOT_gate(wire_labels_g[circuit.gates[i].input_wires[0]])
+              
+          //       break;
+          //     case 'NOT':
+          //       //garble NOT
+          //       wire_labels[circuit.gates[i].output_wire] = garble_NOT_gate(wire_labels_g[circuit.gates[i].input_wires[0]])
+           
+          //       break;
+          //     case 'XOR':
+          //       //garble XOR
+          //       wire_labels[circuit.gates[i].output_wire] = garble_XOR_gate(wire_labels_g[circuit.gates[i].input_wires[0]], wire_labels_g[circuit.gates[i].input_wires[1]])
+             
+          //       break;
+          //     default:
+          //       console.log("Not a valid gate!");
+              
+          //   }
+          //       i = i+1;
+                
+               
+          // }
+        }
+
+        function EvaluatorRun(circuit, input){
+
+          socket.on('GarblerWire', (i,label) => {
+            wire_labels_e[i] = label;
+          });
+          
+          socket.on('StartOT', (i)=> {
+            const b = sodium.crypto_core_ristretto255_scalar_random();
+            let B = sodium.crypto_scalarmult_ristretto255_base(b);
+            c = input[i - circuit.garbler_input_size];
+            socket.emit('OT-B', B);
+
+            socket.on('OT-A', (a) => {
+              const A = Uint8Array.from(a);
+              console.log("A UINT ARRAY: " + A);
+              if (c === 1) {
+                B = sodium.crypto_core_ristretto255_add(A, B);
+              }
+
+              //Receive e
+
+            socket.on('OT-E', (e) => {
+              e = [e0,e1];
+              let k = sodium.crypto_scalarmult_ristretto255(b, A);
+              k = sodium.crypto_generichash(16, k);
+
+              wire_labels_e[i] =  encrypt_generic(e[c], k, 3);
+            });
+
+            });
+          });
+
+          console.log('E-labels' + wire_labels_e);
+        }
+          
+         
+
+
+        
+
+        
+    </script>
+</body>
+</html>
