@@ -47,6 +47,7 @@
 
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="sodium.js" async></script>
     <script>
                 
         // const crypto = require('crypto');
@@ -180,27 +181,29 @@
 
 
         function start() {
-          sodium.ready.then( function () {
-            const circuit = document.getElementById('circuit').value;
-            const role = document.getElementById('partytype').value;
+        	window.sodium = {
+		        onload: function (sodium) {
+		            const circuit = document.getElementById('circuit').value;
+		            const role = document.getElementById('partytype').value;
 
-            console.log(role);
+		            console.log(role);
 
-            socket.emit('circuitchoice', {circuit});
+		            socket.emit('circuitchoice', {circuit});
 
-            socket.on('circuitfile', (c) => {
-              console.log(c);
-              $events.appendChild(newItem(JSON.stringify(c)));
-            });
+		            socket.on('circuitfile', (c) => {
+		              console.log(c);
+		              $events.appendChild(newItem(JSON.stringify(c)));
+		            });
 
-            if(role == 'Garbler'){
-              GarblerRun(c);
-            }
-            else{
-              EvaluatorRun(c);
-            }
-        });
-      }
+		            if(role == 'Garbler'){
+		              GarblerRun(c);
+		            }
+		            else{
+		              EvaluatorRun(c);
+		            }
+		        }
+        	};
+      	}
       
 
         socket.on('connect', () => {
