@@ -1,0 +1,19 @@
+{
+  "name": "client-server-testing",
+  "version": "1.0.0",
+  "description": "server-client",
+  "main": "fileread.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "rathikashi",
+  "license": "ISC",
+  "dependencies": {
+    "libsodium-wrappers": "^0.7.8",
+    "libsodium-wrappers-sumo": "^0.7.8",
+    "seedrandom": "^3.0.5",
+    "socket.io": "^3.0.4",
+    "socket.io-client": "^3.0.4",
+    "websocket": "^1.0.32"
+  }
+}

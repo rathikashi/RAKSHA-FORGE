@@ -576,3 +576,5 @@ var gate3 = garble_AND_gate(label_a0, label_b0,2, [1,1,1]);
 result = evaluate_AND_gate(label_a0, label_b0, 2, gate3);
 
 console.log("result_label: " + result.toString());
+
+export default Garbler;
