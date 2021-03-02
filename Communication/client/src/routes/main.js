@@ -1,6 +1,6 @@
 let gate_circuit = require('./circuit.js');
-Circuit = gate_circuit.Circuit;
-Gate = gate_circuit.Gate;
+const Circuit = gate_circuit.Circuit;
+const Gate = gate_circuit.Gate;
 
 const RECOGNIZED_OPERATIONS = ['AND', 'XOR', 'INV', 'NOT', 'LOR'];    //Valid operaations in the Bristol Format circuit
 const HAS_NO_GARBLED_TABLE = ['XOR', 'NOT'];    // Can be used for readability
@@ -65,7 +65,10 @@ function parsecircuit(circuit_path){
         circuit.gates.push(gate);
 
     }
-
+    //console.log(circuit.gates);
+    // console.log(circuit.wires_count);
+    // console.log(circuit.garbler_input_size);
+    // console.log(circuit.evaluator_input_size);
     return circuit;
 
 }
@@ -74,6 +77,7 @@ function parsecircuit(circuit_path){
 test_circuit = parsecircuit('circuits/bristol/my_circuit.txt');
 //console.log(test_circuit);
 test_circuit.generateLabels();
+// console.log(test_circuit.wire_labels);
 //console.log(test_circuit.gates[0].input_wires);
 
-test_circuit.garble();
+test_circuit.test();
