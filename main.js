@@ -1,6 +1,6 @@
 let gate_circuit = require('./circuit.js');
-Circuit = gate_circuit.Circuit;
-Gate = gate_circuit.Gate;
+const Circuit = gate_circuit.Circuit;
+const Gate = gate_circuit.Gate;
 
 const RECOGNIZED_OPERATIONS = ['AND', 'XOR', 'INV', 'NOT', 'LOR'];    //Valid operaations in the Bristol Format circuit
 const HAS_NO_GARBLED_TABLE = ['XOR', 'NOT'];    // Can be used for readability
