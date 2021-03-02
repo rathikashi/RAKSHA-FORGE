@@ -1,7 +1,7 @@
 var Helper = require('./Helper.js');
 var seedrandom = require('seedrandom');
 var helper = new Helper();
-array_length = 8;
+var array_length = 8;
 var R;
 
 function gc(role){
@@ -20,7 +20,7 @@ function gc(role){
 //[0,0,0] AND
 //[1,1,1] LOR
 gc.prototype.garble_XOR_gate = function(label_a, label_b){
-	return helper.xor(helper.xor(label_a, label_b), R);
+	return helper.xor(label_a, label_b);
 }
 
 gc.prototype.garble_NOT_gate = function(label_a){
@@ -110,12 +110,12 @@ gc.prototype.garble_AND_gate = function(label_a, label_b, gate_id, alphas){
 	/********** Sending the table to the evaluator **********/
 	
 	//Converting the garbled table entries to a string
-	var table_entries = [];
+	let table_entries = [];
 	for (let i = 0; i < array_length; i++) {
 		table_entries[i] = String.fromCharCode(garbled_table[0][i]);
 	}
 
-	table_enteries = [];
+	table_entries = [];
 	for (let i = array_length; i < array_length * 2; i++) {
 		table_entries[i] = String.fromCharCode(garbled_table[1][i-array_length]);
 	}
