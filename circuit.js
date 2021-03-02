@@ -21,6 +21,7 @@ function Gate(id, operation, input_wires, output_wire, garbled_table){
     }
 }
 
+//function to garble a gate, returns the wire label for output wire and a garbled table for gates that require garbled table
 Gate.prototype.garble = function(label_a, label_b){
     
     if (this.operation == "XOR"){
@@ -28,7 +29,7 @@ Gate.prototype.garble = function(label_a, label_b){
     }
 
     else if (this.operation == "LOR"){
-        return gc.garble_AND_gate(label_a, label_b, this.id, [1,1,1]);
+        return gc.garble_AND_gate(label_a, label_b, this.id, [1,1,1]);  //The last parameter makes it a LOR gate
     }
 
     else if (this.operation == "AND"){
@@ -40,6 +41,7 @@ Gate.prototype.garble = function(label_a, label_b){
     }
 }
 
+//function to evaluate a gate, returns the wire label for the output wire corresponding with the result of evaluating the gate
 Gate.prototype.evaluate = function(label_a, label_b, garbled_table){
     if (this.operation == "XOR"){
         return gc.evaluate_XOR_gate(label_a, label_b);
@@ -53,6 +55,7 @@ Gate.prototype.evaluate = function(label_a, label_b, garbled_table){
         return gc.evaluate_AND_gate(label_a, label_b, garbled_table, this.id);
     }
 
+    //Nothing to be done to evaluate NOT gate
     else if (this.operation == "NOT"){
         return label_a;
     }
@@ -70,33 +73,36 @@ function Circuit(wires_count, garbler_input_size, evaluator_input_size, output_s
     this.gates = [];
   }
 
+//Generate labels for all input wires in the circuit
 Circuit.prototype.generateLabels = function(){
     
     const numInputWires = this.garbler_input_size + this.evaluator_input_size;
     
     for (var i = 0; i < numInputWires; i++){
-        this.wire_labels[i] = helper.random_label(8)
+        this.wire_labels[i] = helper.random_label(8)    //8 is the default array length. Need to connect it to a config file
     }
 }
 
+//garble a gate in the circuit
 Circuit.prototype.garble_gate = function(gate_number){
 
     //Get the gate object corresponding to the gate number
-    gate = this.gates[gate_number];
+    let gate = this.gates[gate_number];
     
     //Extract input labels from the gate
-    label_a = this.wire_labels[gate.input_wires[0]];
-    label_b = 0;
+    const label_a = this.wire_labels[gate.input_wires[0]];
+    let label_b = 0;
+    //gates that have only one inpu wire have no label_b
     if(gate.input_wires.length == 2){
         label_b = this.wire_labels[gate.input_wires[1]];
     }
     
-    garble_output = gate.garble(label_a, label_b);
+    const garble_output = gate.garble(label_a, label_b);
 
-    
+    //return garbled table if it is generated for the given gate operation
     if(!HAS_NO_GARBLED_TABLE.includes(gate.operation)  ){  //gate.operation != 'NOT' && gate.operation != 'XOR'
-        garbled_table = garble_output[0];
-        output_wire_label = garble_output[1];
+        const garbled_table = garble_output[0];
+        const output_wire_label = garble_output[1];
 
         this.wire_labels[gate.output_wire] = output_wire_label;
         console.log("Output label");
@@ -104,7 +110,7 @@ Circuit.prototype.garble_gate = function(gate_number){
         return garbled_table;
     }
     else{
-        output_wire_label = garble_output;
+        const output_wire_label = garble_output;
         console.log("Output label");
         console.log(output_wire_label);
         this.wire_labels[gate.output_wire] = output_wire_label;
@@ -113,6 +119,7 @@ Circuit.prototype.garble_gate = function(gate_number){
 
 }
 
+//Evaluate a gate in the circuit
 Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
 
     //Get the gate object corresponding to the gate number
@@ -120,7 +127,7 @@ Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
     
     //Extract input labels from the gate
     label_a = this.wire_labels[gate.input_wires[0]];
-    label_b = 0;
+    label_b = 0;                                         //gates that have only one inpu wire have no label_b
     if(gate.input_wires.length == 2){
         label_b = this.wire_labels[gate.input_wires[1]];
     }
@@ -133,6 +140,7 @@ Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
 
 }
 
+//garble the circuit
 Circuit.prototype.garble = function(){
     number_of_gates = this.gates.length;
     for( i = 0; i < number_of_gates; i++){
@@ -146,7 +154,7 @@ Circuit.prototype.garble = function(){
         gate = this.gates[i];
         label_a = this.wire_labels[gate.input_wires[0]];
         label_b = 0;
-        if(gate.operation != 'NOT' && gate.operation != 'XOR'){
+        if(!HAS_NO_GARBLED_TABLE.includes(gate.operation){
             label_b = this.wire_labels[gate.input_wires[1]];
         }
         output_wire_label = this.evaluate_gate(i, garbled_table);
@@ -160,7 +168,9 @@ Circuit.prototype.evaluate = function(){
     number_of_gates = this.gates.length;
     for( i = 0; i < number_of_gates; i++){
         garbled_table = 0;
-        if(this.gates[i] != 'NOT' && this.gates[i] != 'XOR'){
+
+        //Receive garbled table if the gate requires it
+        if(!HAS_NO_GARBLED_TABLE.includes(this.gates[i].operation){
             //Recieve Garbled table
         }
 
