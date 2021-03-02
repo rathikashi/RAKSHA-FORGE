@@ -5,6 +5,8 @@ let circuit_gate = require('./circuit.js');
 const Circuit =  circuit_gate.Circuit;
 const Gate = circuit_gate.Gate;
 
+let test_circuit = new Circuit();
+
 const Container = styled.div`
     height: 100vh;
     width: 50%;
@@ -195,12 +197,13 @@ const Room = (props) => {
     }
 
     function sendMessage() {
-        sendChannel.current.send(text);
+        sendChannel.current.send(JSON.stringify(test_circuit));
         setMessages(messages => [...messages, {yours: true, value: text}]);
         setText("");
     }
 
     function renderMessage(message, index) {
+        // console.log(JSON.parse(message.value));
         if (message.yours) {
             return (
                 <MyRow key={index}>
