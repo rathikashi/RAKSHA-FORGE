@@ -83,7 +83,7 @@ Circuit.prototype.generateLabels = function(){
     
     const numInputWires = this.garbler_input_size + this.evaluator_input_size;
     
-    for (var i = 0; i < numInputWires; i++){
+    for (let i = 0; i < numInputWires; i++){
         this.wire_labels[i] = helper.random_label(8)    //8 is the default array length. Need to connect it to a config file
     }
 
@@ -155,7 +155,7 @@ Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
 //garble the circuit
 Circuit.prototype.garble = function(){
     const number_of_gates = this.gates.length;
-    for( i = 0; i < number_of_gates; i++){
+    for( let i = 0; i < number_of_gates; i++){
         let garbled_table = this.garble_gate(i);
 
         if(garbled_table != 0){
@@ -176,7 +176,7 @@ Circuit.prototype.garble = function(){
 
 Circuit.prototype.evaluate = function(){
     const number_of_gates = this.gates.length;
-    for( i = 0; i < number_of_gates; i++){
+    for( let i = 0; i < number_of_gates; i++){
         let garbled_table = 0;
 
         //Receive garbled table if the gate requires it
@@ -193,8 +193,8 @@ Circuit.prototype.test = function(){
     this.wire_labels[0] = gc.garble_NOT_gate(this.wire_labels[0]);
     this.wire_labels[2] = gc.garble_NOT_gate(this.wire_labels[2]);
     const number_of_gates = this.gates.length;
-    for( i = 0; i < number_of_gates; i++){
-        gate = this.gates[i];
+    for( let i = 0; i < number_of_gates; i++){
+        let gate = this.gates[i];
         
         console.log("Garbling gate " + i + ": " + gate.operation);
         let garbled_table = this.garble_gate(i);
@@ -212,7 +212,7 @@ Circuit.prototype.test = function(){
     }
 
     const startOfOutputWires = this.wires_count - this.output_size;
-    for( i = startOfOutputWires; i < this.wires_count; i++){
+    for( let i = startOfOutputWires; i < this.wires_count; i++){
         console.log("output wire " + i);
         if(this.wire_labels[i].toString() == this.garbler_wire_labels[i].toString()){
             console.log("0\n");
