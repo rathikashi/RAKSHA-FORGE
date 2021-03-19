@@ -1,8 +1,13 @@
+// import Room from "./Room";
+//import {outsendMessage} from "./Room";
+var Room = require('./Room.js');
 var Helper = require('./Helper.js');
 var seedrandom = require('seedrandom');
 var helper = new Helper();
+var OT = require("./OT.js");
 
 var GC = require('./garbling.js');
+const { OT_receive } = require('./OT.js');
 var gc = new GC('garbler');      //Cant say garbler universally
 
 const RECOGNIZED_OPERATIONS = ['AND', 'XOR', 'INV', 'NOT', 'LOR'];    //Valid operaations in the Bristol Format circuit
@@ -78,6 +83,10 @@ function Circuit(wires_count, garbler_input_size, evaluator_input_size, output_s
     this.gates = [];
   }
 
+Circuit.prototype.testSend = function(){
+    Room.outsendMessage("hey");
+}
+
 //Generate labels for all input wires in the circuit
 Circuit.prototype.generateLabels = function(){
     
@@ -87,9 +96,28 @@ Circuit.prototype.generateLabels = function(){
         this.wire_labels[i] = helper.random_label(8)    //8 is the default array length. Need to connect it to a config file
     }
 
+
     // TESTING
     this.garbler_wire_labels = this.wire_labels.map((x) => x);
     // TESTING
+}
+
+Circuit.prototype.send_labels_ot = function(){
+    const numInputWires = this.garbler_input_size + this.evaluator_input_size;
+
+    //Sending labels through OT
+    for (let i = 0; i < numInputWires; i++){
+        OT.OT_send(i,this.wire_labels[i][0],this.wire_labels[i][1]);
+    }
+}
+
+Circuit.prototype.receive_labels_ot = function(evaluatorInput){
+    const numInputWires = this.garbler_input_size + this.evaluator_input_size;
+
+    //receiving labels through OT
+    for (let i = 0; i < numInputWires; i++){
+        OT.OT_receive(evaluatorInput[i],i);
+    }
 }
 
 //garble a gate in the circuit
@@ -160,16 +188,17 @@ Circuit.prototype.garble = function(){
 
         if(garbled_table != 0){
             //Send that Shit!!!
+            Room.outsendMessage(garbled_table);
         }
         
         //Code to test
-        let gate = this.gates[i];
-        const label_a = this.wire_labels[gate.input_wires[0]];
-        let label_b = 0;
-        if(!HAS_NO_GARBLED_TABLE.includes(gate.operation)){
-            label_b = this.wire_labels[gate.input_wires[1]];
-        }
-        const output_wire_label = this.evaluate_gate(i, garbled_table);
+        // let gate = this.gates[i];
+        // const label_a = this.wire_labels[gate.input_wires[0]];
+        // let label_b = 0;
+        // if(!HAS_NO_GARBLED_TABLE.includes(gate.operation)){
+        //     label_b = this.wire_labels[gate.input_wires[1]];
+        // }
+        // const output_wire_label = this.evaluate_gate(i, garbled_table);
         //Code to test
     }
 }
@@ -182,9 +211,13 @@ Circuit.prototype.evaluate = function(){
         //Receive garbled table if the gate requires it
         if(!HAS_NO_GARBLED_TABLE.includes(this.gates[i].operation)){
             //Recieve Garbled table
+            garbled_table = Room.Receive().then( function(garbled_table){
+                this.evaluate_gate(i, garbled_table);
+            });
         }
-
-        this.evaluate_gate(i, garbled_table);
+        else{
+            this.evaluate_gate(i, garbled_table);
+        }
     }
 }
 

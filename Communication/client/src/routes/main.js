@@ -1,3 +1,5 @@
+import Room from "./Room";
+import {outsendMessage} from "./Room";
 let gate_circuit = require('./circuit.js');
 const Circuit = gate_circuit.Circuit;
 const Gate = gate_circuit.Gate;

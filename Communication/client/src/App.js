@@ -5,6 +5,7 @@ import Room from "./routes/Room";
 import './App.css';
 
 function App() {
+  // console.log(handleReceiveMessage());
   return (
     <div className="App">
       <BrowserRouter>

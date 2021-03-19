@@ -1,11 +1,17 @@
 import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import styled from "styled-components";
+import ReactFileReader from "react-file-reader";
 let circuit_gate = require('./circuit.js');
 const Circuit =  circuit_gate.Circuit;
 const Gate = circuit_gate.Gate;
+var role;
+let circuitFile;
 
-let test_circuit = new Circuit();
+var OT = require("./OT.js");
+
+var test_circuit = new Circuit();
+var sendChannel;
 
 const Container = styled.div`
     height: 100vh;
@@ -75,11 +81,90 @@ const PartnerMessage = styled.div`
   border-bottom-left-radius: 10%;
 `;
 
+// export const testFunc = () => {
+//     console.log('Works!');
+// }
+
+
+
+function messageQueue() {
+    this.queue = {};
+    this.tail = 0;
+    this.head = 0;
+  }
+  
+  // Add an element to the end of the queue.
+  messageQueue.prototype.enqueue = function(element) {
+    this.queue[this.tail++] = element;
+  }
+  
+  // Delete the first element of the queue.
+  messageQueue.prototype.dequeue = function() {
+    if (this.tail === this.head)
+        return undefined
+    console.log("inside dequeue");
+    console.log("queue: ");
+    console.log(this.queue);
+    console.log("head: ");
+    console.log(this.head); 
+    var element = this.queue[this.head];
+    delete this.queue[this.head++];
+    return element;
+  }
+
+var messages = new messageQueue();
+
+let listener = null;
+
+export const Receive = () => {
+    console.log("going in receive");
+    
+    return new Promise(function (resolve) {
+        sendToListener(resolve);
+        });
+};
+
+function sendToListener(callback){
+    console.log("message queue length: " + Object.keys(messages.queue).length);
+    //console.log(messages.queue);
+    if(Object.keys(messages.queue).length != 0){
+        callback(messages.dequeue());
+    }
+
+    else if(listener == null){
+        listener = callback;
+    }
+
+    else{
+        console.log("Listener should be null but its not");
+    }
+};
+
+export const handleReceiveMessage = (e) => {
+    // setMessages(messages => [...messages, {yours: false, value: e.data}]);
+    console.log("received" + e.data);
+    if(listener!=null){
+        listener(e.data);
+        listener = null;
+    }
+    else{
+        messages.enqueue(e.data);
+    }
+}
+
+export const outsendMessage = (message) => {
+    // Room.sendMessage();
+    console.log("sending" + message + sendChannel);
+    sendChannel.current.send(message);
+    // setMessages(messages => [...messages, {yours: true, value: text}]);
+    // setText("");
+}
+
 const Room = (props) => {
     const peerRef = useRef();
     const socketRef = useRef();
     const otherUser = useRef();
-    const sendChannel = useRef();
+    sendChannel = useRef();
     const [text, setText] = useState("");
     const [messages, setMessages] = useState([]);
 
@@ -111,9 +196,9 @@ const Room = (props) => {
         sendChannel.current.onmessage = handleReceiveMessage;
     }
 
-    function handleReceiveMessage(e){
-        setMessages(messages => [...messages, {yours: false, value: e.data}]);
-    }
+    // function handleReceiveMessage(e){
+    //     setMessages(messages => [...messages, {yours: false, value: e.data}]);
+    // }
 
     function createPeer(userID) {
         const peer = new RTCPeerConnection({
@@ -197,9 +282,68 @@ const Room = (props) => {
     }
 
     function sendMessage() {
-        sendChannel.current.send(JSON.stringify(test_circuit));
+        console.log("call to send message");
+        outsendMessage(sendChannel.current);
+        //sendChannel.current.send('hey');
         setMessages(messages => [...messages, {yours: true, value: text}]);
         setText("");
+    }
+
+    function circuitsend(){
+        test_circuit.testSend();
+    }
+
+    function assignRole(e){
+        console.log(e.target.value);
+        role = e.target.value;
+    }
+    
+    const handleFiles = (e) => {
+        var reader = new FileReader();
+        console.log(e);
+        reader.onload = (e) => {
+          // Use reader.result
+        //   this.setState({ data: Papa.parse(reader.result, { header: true }) });
+          circuitFile = (e.target.result)
+          console.log(circuitFile)
+        };
+        // if(role == "Garbler"){
+        //     outsendMessage(text);
+        // }
+        // else{
+        //     let file = Receive(file).then(function(){
+        //         console.log(file);
+        //     });
+        // }
+        reader.readAsText(e.target.files[0]);
+      };
+
+    //   this.handleFiles = this.handleFiles.bind(this);
+
+    function testFile(){
+        if(role == "Garbler"){
+            outsendMessage(JSON.stringify(circuitFile));
+        }
+        else{
+            let file = Receive().then(function(circuitFile){
+                console.log(JSON.parse(circuitFile));
+            });
+        }
+    }
+
+    function testOT(){
+        messages.queue = {};
+        console.log("role is " + role);
+        if(role == "Garbler"){
+            OT.OT_send(2);
+        }
+
+        else{
+            let OT_output = OT.OT_receive(0,2).then(function (OT_output){
+            console.log("ot_output:");
+            console.log(OT_output);
+            });
+        }
     }
 
     function renderMessage(message, index) {
@@ -229,7 +373,28 @@ const Room = (props) => {
                 {messages.map(renderMessage)}
             </Messages>
             <MessageBox value={text} onChange={handleChange} placeholder="Say something....." />
-            <Button onClick={sendMessage}>Send..</Button>
+            {/* <input id="upload" ref="upload" type="file"
+                onChange={(event)=> { 
+                    this.readFile(event) 
+                }}
+                onClick={(event)=> { 
+                    event.target.value = null
+                }}
+            /> */}
+            {/* <ReactFileReader handleFiles={handleFiles} fileTypes={".csv"}>
+                <button className="btn">Upload</button>
+            </ReactFileReader> */}
+            <div>
+                <input type="file" onChange={(e) => 
+                    handleFiles(e)} />
+            </div>
+            {/* <input type="file" onChange = {e => handleFiles(e)}>Upload</input> */}
+            <div onChange = {assignRole}>
+                <input type="radio" value="Garbler" name="role" /> Garbler
+                <input type="radio" value="Evaluator" name="role" /> Evaluator
+            </div>
+            <Button onClick={testFile}>Send..</Button>
+            
         </Container>
     );
 };
