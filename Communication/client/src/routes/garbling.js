@@ -110,12 +110,12 @@ gc.prototype.garble_AND_gate = function(label_a, label_b, gate_id, alphas){
 	/********** Sending the table to the evaluator **********/
 	
 	//Converting the garbled table entries to a string
-	let table_entries = [];
+	var table_entries = [];
 	for (let i = 0; i < array_length; i++) {
 		table_entries[i] = String.fromCharCode(garbled_table[0][i]);
 	}
 
-	table_entries = [];
+	// table_entries = [];
 	for (let i = array_length; i < array_length * 2; i++) {
 		table_entries[i] = String.fromCharCode(garbled_table[1][i-array_length]);
 	}

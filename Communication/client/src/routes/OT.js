@@ -11,7 +11,7 @@ var array_length = 8;
 
 // Function to generate a random label of length size*16 bits
 function random_label(size){
-	var label = new Uint8Array(size);
+	var label = new Uint16Array(size);
 	var random = crypto.randomBytes(size*2);
 	//generate a number between 0-65535 to store in a 2 byte element
 	for (let i = 0; i < size; i++) {
@@ -23,11 +23,11 @@ function random_label(size){
 	return label;
 }
 
-//Funcion to xor two Uint8Array variables
+//Funcion to xor two Uint16Array variables
 function xor(label_a, label_b){
 
 	//Initialize array to store xor output
-	var output = new Uint8Array(array_length);
+	var output = new Uint16Array(array_length);
 
 	//Perform element-wise xor for the input arrays and store in output array
 	for (let i = 0; i < array_length; i++) {
@@ -41,7 +41,7 @@ function xor(label_a, label_b){
 function encrypt_generic(plaintext, key, id){
 
 	
-	var k = new Uint8Array(array_length);
+	var k = new Uint16Array(array_length);
 	var temp_id = id;
 	
 	for (let i = 0; i < array_length; i++) {
@@ -53,7 +53,7 @@ function encrypt_generic(plaintext, key, id){
 	}
 
 	//permutation array stores a random permutation of k
-	var permutation = new Uint8Array(array_length);
+	var permutation = new Uint16Array(array_length);
 	permutation[0] = k[array_length-1];
 
 	for (let i = 1; i < array_length; i++) {
@@ -63,42 +63,48 @@ function encrypt_generic(plaintext, key, id){
 	return xor(plaintext,xor(permutation, k));
 }
 
-export const OT_send = (gate_id,m0 = random_label(8), m1 = random_label(8)) => { 
+export const OT_send = async (gate_id,m0, m1) => { 
 	const c = 0;
 	const a = sodium.crypto_core_ristretto255_scalar_random();
 	console.log("m0: " + m0);
 	console.log("m1: " + m1);
 	let A = sodium.crypto_scalarmult_ristretto255_base(a);
-	console.log("A: " + A);
+	//console.log("A: " + A);
+	A = Uint8Array.from(A);
 
 	//Send A
-	Room.outsendMessage(JSON.stringify(Array.from(A)))
+	Room.outsendMessage(JSON.stringify(Array.from(A)));
 
 	//Recieve B
-	let B = Room.Receive().then(function (B){
+	let B = await Room.Receive()//.then(function (B){
 		B = JSON.parse(B);
-		console.log("Received: ");
+		//console.log("Received: ");
+		//console.log(B);
+
+		console.log("B: ");
 		console.log(B);
 
 		B = Uint8Array.from(B);
-		console.log("B after Uint8array: ");
+		console.log("B: ");
 		console.log(B);
-		console.log("a: " + a);
-		console.log("length of a: " + a.length);
+		//console.log("B after Uint16Array: ");
+		//console.log(B);
+		//console.log("a: " + a);
+		//console.log("length of a: " + a.length);
 		let k0 = sodium.crypto_scalarmult_ristretto255(a, B);
 		let k1 = sodium.crypto_scalarmult_ristretto255(a, sodium.crypto_core_ristretto255_sub(B, A));
 
 		k0 = sodium.crypto_generichash(16, k0);
 		k1 = sodium.crypto_generichash(16, k1);
 
-		const e0 = encrypt_generic(m0, k0, 3);
-		const e1 = encrypt_generic(m1, k1, 3);
+		const e0 = encrypt_generic(m0, k0, gate_id);
+		const e1 = encrypt_generic(m1, k1, gate_id);
 
 		let e = [e0,e1];
 
 		//Send e
 		Room.outsendMessage(JSON.stringify(e));
-	});
+	//});
 
 
 }
@@ -111,28 +117,33 @@ export const OT_receive = (c, gate_id) => {
 	return new Promise(function (resolve) {
 		let A = Room.Receive().then(function (A) {
 		A = JSON.parse(A);
-		console.log("A on being received: ");
-		console.log(A);
 		A = Uint8Array.from(A);
-		console.log("A after uint8array: ");
-		console.log(A);
+		//console.log("A on being received: ");
+		//console.log(A);
+		//A = Uint8Array.from(A);
+		//console.log("A after Uint16Array: ");
+		//console.log(A);
 		if (c === 1) {
 		  B = sodium.crypto_core_ristretto255_add(A, B);
 		}
+
+		B = Uint8Array.from(B);
   
 		Room.outsendMessage(JSON.stringify(Array.from(B)));
 		let e = Room.Receive().then(function (e) {
 		  e = JSON.parse(e);
-		  console.log("Received e:");
-		  console.log(e);
+		  //console.log("Received e:");
+		  //console.log(e);
 		  let k = sodium.crypto_scalarmult_ristretto255(b, A);
 		  k = sodium.crypto_generichash(16, k);
 
-		  console.log('C:' + c);
-		  console.log('e[c]:');
-		  console.log(e[c]);
-  
-		  resolve(encrypt_generic(e[c], k, 3));
+		  //console.log('C:' + c);
+		  //console.log('e[c]:');
+		  //console.log(e[c]);
+
+
+		  console.log("OT output: " + encrypt_generic(e[c], k, gate_id));
+		  resolve(encrypt_generic(e[c], k, gate_id));
 		});
 	  });
 	});

@@ -9,6 +9,7 @@ var role;
 let circuitFile;
 
 var OT = require("./OT.js");
+var main = require("./main.js");
 
 var test_circuit = new Circuit();
 var sendChannel;
@@ -102,11 +103,11 @@ function messageQueue() {
   messageQueue.prototype.dequeue = function() {
     if (this.tail === this.head)
         return undefined
-    console.log("inside dequeue");
-    console.log("queue: ");
-    console.log(this.queue);
-    console.log("head: ");
-    console.log(this.head); 
+    //console.log("inside dequeue");
+    //console.log("queue: ");
+    //console.log(this.queue);
+    //console.log("head: ");
+    //console.log(this.head); 
     var element = this.queue[this.head];
     delete this.queue[this.head++];
     return element;
@@ -117,7 +118,7 @@ var messages = new messageQueue();
 let listener = null;
 
 export const Receive = () => {
-    console.log("going in receive");
+    //console.log("going in receive");
     
     return new Promise(function (resolve) {
         sendToListener(resolve);
@@ -125,7 +126,7 @@ export const Receive = () => {
 };
 
 function sendToListener(callback){
-    console.log("message queue length: " + Object.keys(messages.queue).length);
+    //console.log("message queue length: " + Object.keys(messages.queue).length);
     //console.log(messages.queue);
     if(Object.keys(messages.queue).length != 0){
         callback(messages.dequeue());
@@ -142,7 +143,7 @@ function sendToListener(callback){
 
 export const handleReceiveMessage = (e) => {
     // setMessages(messages => [...messages, {yours: false, value: e.data}]);
-    console.log("received" + e.data);
+    //console.log("received" + e.data);
     if(listener!=null){
         listener(e.data);
         listener = null;
@@ -154,7 +155,7 @@ export const handleReceiveMessage = (e) => {
 
 export const outsendMessage = (message) => {
     // Room.sendMessage();
-    console.log("sending" + message + sendChannel);
+    //console.log("sending" + message + sendChannel);
     sendChannel.current.send(message);
     // setMessages(messages => [...messages, {yours: true, value: text}]);
     // setText("");
@@ -320,13 +321,29 @@ const Room = (props) => {
 
     //   this.handleFiles = this.handleFiles.bind(this);
 
-    function testFile(){
+    async function testFile(){
         if(role == "Garbler"){
             outsendMessage(JSON.stringify(circuitFile));
+            let parsedCircuit = main.parsecircuit(circuitFile);
+            console.log(parsedCircuit);
+            parsedCircuit.generateLabels();
+            let input = [1,1];
+            await parsedCircuit.send_labels(input);
+            console.log("This should print later");
+            await parsedCircuit.garble();
+            console.log("Done");
         }
-        else{
-            let file = Receive().then(function(circuitFile){
+        else if (role == "Evaluator"){
+            let file = Receive().then(async function(circuitFile){
                 console.log(JSON.parse(circuitFile));
+                let parsedCircuit = main.parsecircuit(JSON.parse(circuitFile));
+                console.log(parsedCircuit);
+                let input = [1,0];
+                await parsedCircuit.receive_labels(input);
+                console.log("this should print later");
+                console.log(parsedCircuit);
+                await parsedCircuit.evaluate();
+                console.log("Done");
             });
         }
     }
@@ -339,7 +356,7 @@ const Room = (props) => {
         }
 
         else{
-            let OT_output = OT.OT_receive(0,2).then(function (OT_output){
+            let OT_output = OT.OT_receive(1,2).then(function (OT_output){
             console.log("ot_output:");
             console.log(OT_output);
             });

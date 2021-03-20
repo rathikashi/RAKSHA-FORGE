@@ -7,8 +7,8 @@ const Gate = gate_circuit.Gate;
 const RECOGNIZED_OPERATIONS = ['AND', 'XOR', 'INV', 'NOT', 'LOR'];    //Valid operaations in the Bristol Format circuit
 const HAS_NO_GARBLED_TABLE = ['XOR', 'NOT'];    // Can be used for readability
 
-function parsecircuit(circuit_path){
-    text = require('fs').readFileSync(circuit_path, {encoding:'utf8'});
+export const parsecircuit = (text) => {
+    //let text = require('fs').readFileSync(circuit_path, {encoding:'utf8'});
 
     const rows = text.split('\n').filter(function (line) {
         const tmp = line.trim();
@@ -46,10 +46,10 @@ function parsecircuit(circuit_path){
         }
 
         if ((op === 'INV' || op === 'NOT') && (input_count !== 1)) {
-            throw new Error(op + ' Gate ' + r + ' does not have exactly 1 input!');
+            throw new Error(op + ' Gate ' + i + ' does not have exactly 1 input!');
           }
         if ((op === 'AND' || op === 'LOR' || op === 'XOR') && (input_count !== 2)) {
-            throw new Error('Gate ' + r + ' does not have exactly 2 inputs!');
+            throw new Error('Gate ' + i + ' does not have exactly 2 inputs!');
           }
         
         if (RECOGNIZED_OPERATIONS.indexOf(op) === -1) {
@@ -76,10 +76,10 @@ function parsecircuit(circuit_path){
 }
 
 
-test_circuit = parsecircuit('circuits/bristol/my_circuit.txt');
+//test_circuit = parsecircuit('circuits/bristol/my_circuit.txt');
 //console.log(test_circuit);
-test_circuit.generateLabels();
+//test_circuit.generateLabels();
 // console.log(test_circuit.wire_labels);
 //console.log(test_circuit.gates[0].input_wires);
 
-test_circuit.test();
+//test_circuit.test();
