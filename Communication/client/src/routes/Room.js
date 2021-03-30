@@ -7,6 +7,10 @@ const Circuit =  circuit_gate.Circuit;
 const Gate = circuit_gate.Gate;
 var role;
 let circuitFile;
+let garble_input;
+let eval_input;
+const fileChunks = [];
+let file;
 
 var OT = require("./OT.js");
 var main = require("./main.js");
@@ -128,7 +132,7 @@ export const Receive = () => {
 function sendToListener(callback){
     //console.log("message queue length: " + Object.keys(messages.queue).length);
     //console.log(messages.queue);
-    if(Object.keys(messages.queue).length != 0){
+    if(Object.keys(messages.queue).length !== 0){
         callback(messages.dequeue());
     }
 
@@ -170,7 +174,7 @@ const Room = (props) => {
     const [messages, setMessages] = useState([]);
 
     useEffect(() => {
-        socketRef.current = io.connect("http://localhost:8000");
+        socketRef.current = io.connect("http://10.1.37.203:8000");
         socketRef.current.emit("join room", props.match.params.roomID);
 
         socketRef.current.on('other user', userID => {
@@ -279,6 +283,18 @@ const Room = (props) => {
     }
 
     function handleChange(e) {
+        let u_input = e.target.value.split('').map(Number);
+        if(role === 'Garbler'){
+            garble_input = u_input;
+            console.log('input:');
+            console.log(garble_input);
+        }
+        else{
+            eval_input = u_input;
+            console.log('input:');
+            console.log(eval_input);
+        }
+        
         setText(e.target.value);
     }
 
@@ -322,36 +338,78 @@ const Room = (props) => {
     //   this.handleFiles = this.handleFiles.bind(this);
 
     async function testFile(){
-        if(role == "Garbler"){
-            outsendMessage(JSON.stringify(circuitFile));
+        if(role === "Garbler"){
+            // circuitFile.arrayBuffer()
+            // .then(buffer => {
+            //   /**
+            //    * A chunkSize (in Bytes) is set here
+            //    * I have it set to 16KB
+            //    */
+            //   const chunkSize = 16 * 1024;
+        
+            //   // Keep chunking, and sending the chunks to the other peer
+            //   while(buffer.byteLength) {
+            //     const chunk = buffer.slice(0, chunkSize);
+            //     buffer = buffer.slice(chunkSize, buffer.byteLength);
+                
+            //     // Off goes the chunk!
+            //     // peer1.send(chunk);
+            //     outsendMessage(chunk)
+            //   }
+        
+            //   // End message to signal that all chunks have been sent
+            //   outsendMessage('All chunks sent!');
+            // //   return new Promise(function (resolve){
+            // //     resolve();
+            // // })
+            // });
+        
+            // outsendMessage(JSON.stringify(circuitFile));
             let parsedCircuit = main.parsecircuit(circuitFile);
             console.log(parsedCircuit);
             parsedCircuit.generateLabels();
+            setMessages(messages => [...messages, {yours: false, value: "circuit parsed"}]);
+            setText("");
             let input = [1,1];
-            await parsedCircuit.send_labels(input);
+            setMessages(messages => [...messages, {yours: false, value: "Sending input labels through Oblivious transfer"}]);
+            setText("");
+            await parsedCircuit.send_labels(garble_input);
+            setMessages(messages => [...messages, {yours: true, value: "Received the input labels"}]);
+            setText("");
             console.log("This should print later");
-            await parsedCircuit.garble();
+            setMessages(messages => [...messages, {yours: false, value: "Evaluating Circuit"}]);
+            setText("");
+            let output = await parsedCircuit.garble();
+            output = parseInt(output,2);
+            setMessages(messages => [...messages, {yours: false, value: "Output is " + output}]);
+            setText("");
             console.log("Done");
         }
-        else if (role == "Evaluator"){
-            let file = Receive().then(async function(circuitFile){
-                console.log(JSON.parse(circuitFile));
-                let parsedCircuit = main.parsecircuit(JSON.parse(circuitFile));
+        else if (role === "Evaluator"){
+                // let circuitFile = await Receive();
+                // if(circuitFile == 'All chunks sent!'){
+                //      file = new Blob(fileChunks);
+                //      console.log(file);
+                // }
+                // else{
+                //     fileChunks.push(circuitFile);
+                // }
+                let parsedCircuit = main.parsecircuit(circuitFile);
                 console.log(parsedCircuit);
                 let input = [1,0];
-                await parsedCircuit.receive_labels(input);
+                await parsedCircuit.receive_labels(eval_input);
                 console.log("this should print later");
                 console.log(parsedCircuit);
                 await parsedCircuit.evaluate();
                 console.log("Done");
-            });
+            
         }
     }
 
     function testOT(){
         messages.queue = {};
         console.log("role is " + role);
-        if(role == "Garbler"){
+        if(role === "Garbler"){
             OT.OT_send(2);
         }
 
@@ -390,22 +448,10 @@ const Room = (props) => {
                 {messages.map(renderMessage)}
             </Messages>
             <MessageBox value={text} onChange={handleChange} placeholder="Say something....." />
-            {/* <input id="upload" ref="upload" type="file"
-                onChange={(event)=> { 
-                    this.readFile(event) 
-                }}
-                onClick={(event)=> { 
-                    event.target.value = null
-                }}
-            /> */}
-            {/* <ReactFileReader handleFiles={handleFiles} fileTypes={".csv"}>
-                <button className="btn">Upload</button>
-            </ReactFileReader> */}
             <div>
                 <input type="file" onChange={(e) => 
                     handleFiles(e)} />
             </div>
-            {/* <input type="file" onChange = {e => handleFiles(e)}>Upload</input> */}
             <div onChange = {assignRole}>
                 <input type="radio" value="Garbler" name="role" /> Garbler
                 <input type="radio" value="Evaluator" name="role" /> Evaluator

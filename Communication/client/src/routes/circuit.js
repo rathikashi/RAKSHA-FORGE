@@ -29,39 +29,39 @@ function Gate(id, operation, input_wires, output_wire, garbled_table){
 //function to garble a gate, returns the wire label for output wire and a garbled table for gates that require garbled table
 Gate.prototype.garble = function(label_a, label_b){
     
-    if (this.operation == "XOR"){
+    if (this.operation === "XOR"){
         return gc.garble_XOR_gate(label_a, label_b);
     }
 
-    else if (this.operation == "LOR"){
+    else if (this.operation === "LOR"){
         return gc.garble_AND_gate(label_a, label_b, this.id, [1,1,1]);  //The last parameter makes it a LOR gate
     }
 
-    else if (this.operation == "AND"){
+    else if (this.operation === "AND"){
         return gc.garble_AND_gate(label_a, label_b, this.id, [0,0,0]);
     }
 
-    else if (this.operation == "NOT"){
+    else if (this.operation === "NOT"){
         return gc.garble_NOT_gate(label_a);
     }
 }
 
 //function to evaluate a gate, returns the wire label for the output wire corresponding with the result of evaluating the gate
 Gate.prototype.evaluate = function(label_a, label_b, garbled_table){
-    if (this.operation == "XOR"){
+    if (this.operation === "XOR"){
         return gc.evaluate_XOR_gate(label_a, label_b);
     }
 
-    else if (this.operation == "LOR"){
+    else if (this.operation === "LOR"){
         return gc.evaluate_AND_gate(label_a, label_b, garbled_table, this.id);
     }
 
-    else if (this.operation == "AND"){
+    else if (this.operation === "AND"){
         return gc.evaluate_AND_gate(label_a, label_b, garbled_table, this.id);
     }
 
     //Nothing to be done to evaluate NOT gate
-    else if (this.operation == "NOT"){
+    else if (this.operation === "NOT"){
         return label_a;
     }
 
@@ -109,7 +109,7 @@ Circuit.prototype.send_labels = async function(input){
     for (let i = 0; i < this.garbler_input_size; i++){
         let label = this.wire_labels[i];
         
-        if(input[i] == 1){
+        if(input[i] === 1){
             label = gc.garble_NOT_gate(label);
         }
 
@@ -165,7 +165,7 @@ Circuit.prototype.garble_gate = function(gate_number){
 
     let label_b = 0;
     //gates that have only one inpu wire have no label_b
-    if(gate.input_wires.length == 2){
+    if(gate.input_wires.length === 2){
         label_b = this.wire_labels[gate.input_wires[1]];
     }
     
@@ -196,7 +196,7 @@ Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
     //Extract input labels from the gate
     const label_a = this.wire_labels[gate.input_wires[0]];
     let label_b = 0;                                         //gates that have only one inpu wire have no label_b
-    if(gate.input_wires.length == 2){
+    if(gate.input_wires.length === 2){
         label_b = this.wire_labels[gate.input_wires[1]];
     }
     
@@ -209,12 +209,12 @@ Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
 }
 
 //garble the circuit
-Circuit.prototype.garble = function(){
+Circuit.prototype.garble = async function(){
     const number_of_gates = this.gates.length;
     for( let i = 0; i < number_of_gates; i++){
         let garbled_table = this.garble_gate(i);
 
-        if(garbled_table != 0){
+        if(garbled_table !== 0){
             //Send that Shit!!!
             console.log("sending garbled table for gate " + i + ": " + garbled_table)
             Room.outsendMessage(garbled_table);
@@ -235,21 +235,31 @@ Circuit.prototype.garble = function(){
     const startOfOutputWires = this.wires_count - this.output_size;
     console.log("Wire label: ");
     console.log(this.wire_labels);
+    let outputWireLabel;
+    let output = "";
     for( let i = startOfOutputWires; i < this.wires_count; i++){
-        console.log("output wire " + i);
-        console.log(this.wire_labels[i]);
-        console.log(gc.garble_NOT_gate(this.wire_labels[i]));
-        // if(this.wire_labels[i].toString() == this.garbler_wire_labels[i].toString()){
-        //     console.log("0\n");
-        // }
+        outputWireLabel = await Room.Receive();
+        outputWireLabel = JSON.parse(outputWireLabel);
+		outputWireLabel = Uint16Array.from(outputWireLabel);
+        console.log("wire received from evaluator: ");
+        console.log(outputWireLabel.toString());
+        console.log('If output is 1');
+        console.log((gc.garble_NOT_gate(this.wire_labels[i])).toString());
+        console.log('If output is 0');
+        console.log(this.wire_labels[i].toString());
+        if(outputWireLabel.toString() === this.wire_labels[i].toString()){
+            console.log("0\n");
+            output = output + "0";
+        }
 
-        // else{
-        //     console.log("1\n");
-        // }
+        else{
+            console.log("1\n");
+            output = output + "1";
+        }
     }
 
     return new Promise(function (resolve){
-        resolve();
+        resolve(output);
     })
 }
 
@@ -281,6 +291,7 @@ Circuit.prototype.evaluate = async function(){
         console.log(this.wire_labels);
         for( let i = startOfOutputWires; i < this.wires_count; i++){
             console.log("output wire " + i);
+            Room.outsendMessage(JSON.stringify(Array.from(this.wire_labels[i])));
             console.log(this.wire_labels[i]);
             // if(this.wire_labels[i].toString() == this.garbler_wire_labels[i].toString()){
             //     console.log("0\n");
@@ -309,7 +320,7 @@ Circuit.prototype.test = function(){
 
         this.evaluate_gate(i, garbled_table);
 
-        if(this.wire_labels[gate.output_wire].toString() == this.garbler_wire_labels[gate.output_wire].toString()){
+        if(this.wire_labels[gate.output_wire].toString() === this.garbler_wire_labels[gate.output_wire].toString()){
             console.log("Output: 0\n");
         }
 
@@ -321,7 +332,7 @@ Circuit.prototype.test = function(){
     const startOfOutputWires = this.wires_count - this.output_size;
     for( let i = startOfOutputWires; i < this.wires_count; i++){
         console.log("output wire " + i);
-        if(this.wire_labels[i].toString() == this.garbler_wire_labels[i].toString()){
+        if(this.wire_labels[i].toString() === this.garbler_wire_labels[i].toString()){
             console.log("0\n");
         }
 

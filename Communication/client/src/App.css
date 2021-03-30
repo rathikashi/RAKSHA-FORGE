@@ -1,10 +1,15 @@
 .App {
   text-align: center;
+  background-image: url("https://d2slcw3kip6qmk.cloudfront.net/marketing/techblog/cryptography-a-simple-overview-header@2x.png");
 }
 
 .App-logo {
   height: 40vmin;
   pointer-events: none;
+}
+
+.App-title {
+  font-size: 3em;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -14,14 +19,10 @@
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  color: darkturquoise;
 }
 
 .App-link {

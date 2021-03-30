@@ -6,6 +6,11 @@ import './../App.css'
 import App from "../App";
 // import {Button} from '@material-ui/core';
 
+const openInNewTab = (url) => {
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer')
+    if (newWindow) newWindow.opener = null
+  }
+
 const Button = styled.button`
   /* Adapt the colors based on primary prop */
   background: ${props => props.primary ? "palevioletred" : "white"};
@@ -35,29 +40,31 @@ const mydiv = styled.div`
     
 `;
 
-const CreateRoom = (props) => {
-    function choose() {
-        // const id = uuid();
-        props.history.push(`/choosecircuit`);
+const ChooseCircuit = (props) => {
+    function create() {
+        const id = uuid();
+        props.history.replace(`/room/${id}`);
     }
+
+
 
     return (
         //<Container>
-        <div className="App" >
-            <header className="App-header">
+        <div className="App">
+        <header className="App-header">
                 <h1 className="App-title">RAKSHA-FORGE</h1>
-            </header>
+                </header>
                 <div
-                    style={{
-                        position: 'absolute', left: '50%', top: '50%',
-                        transform: 'translate(-50%, -50%)'
-                    }}>
+                style={{
+                    position: 'absolute', left: '50%', top: '50%',
+                    transform: 'translate(-50%, -50%)'
+                }}>
                     {/* <h3>Try it out!</h3> */}
                     <h1 className="App-title">Try it out!</h1>
-                    <Button primary onClick={choose}>Let's Execute!</Button>
+                    <Button primary onClick={() => openInNewTab('https://homes.esat.kuleuven.be/~nsmart/MPC/')}>Choose Circuit</Button>
+                    <Button primary onClick={create}>Create Room</Button>
                 </div>
-        </div>
-                
+                </div>
             
                 
         
@@ -67,4 +74,4 @@ const CreateRoom = (props) => {
     );
 }
 
-export default CreateRoom;
+export default ChooseCircuit;
