@@ -217,7 +217,9 @@ Circuit.prototype.garble = async function(){
         if(garbled_table !== 0){
             //Send that Shit!!!
             console.log("sending garbled table for gate " + i + ": " + garbled_table)
-            Room.outsendMessage(garbled_table);
+            Room.outsendMessage(JSON.stringify(Array.from(garbled_table[0])));
+            Room.outsendMessage(JSON.stringify(Array.from(garbled_table[1])));
+
         }
         
         //Code to test
@@ -252,9 +254,14 @@ Circuit.prototype.garble = async function(){
             output = output + "0";
         }
 
-        else{
+        else if(outputWireLabel.toString() === (gc.garble_NOT_gate(this.wire_labels[i])).toString()) {
             console.log("1\n");
             output = output + "1";
+        }
+
+        else{
+            console.log("error\n");
+            output = output + "error";
         }
     }
 
@@ -266,22 +273,33 @@ Circuit.prototype.garble = async function(){
 Circuit.prototype.evaluate = async function(){
     const number_of_gates = this.gates.length;
     console.log("number of gates: " + number_of_gates);
+    var evaluatedLabel;
     for( let i = 0; i < number_of_gates; i++){
         let garbled_table = 0;
+        var garbled_table_0;
+        var garbled_table_1;
 
         //Receive garbled table if the gate requires it
         console.log("Evaluating gate " + i + ": " + this.gates[i].operation);
         if(!HAS_NO_GARBLED_TABLE.includes(this.gates[i].operation)){
             //Recieve Garbled table
-            garbled_table = await Room.Receive()
+            garbled_table_0 = await Room.Receive()
+            garbled_table_0 = JSON.parse(garbled_table_0);
+		    garbled_table_0 = Uint16Array.from(garbled_table_0);
+
+            garbled_table_1 = await Room.Receive()
+            garbled_table_1 = JSON.parse(garbled_table_1);
+		    garbled_table_1 = Uint16Array.from(garbled_table_1);
+
+            garbled_table = [garbled_table_0, garbled_table_1];
             //garbled_table = JSON.parse(garbled_table);
             console.log("Received garbled table for gate " + i + ": " + garbled_table);
-            this.evaluate_gate(i, garbled_table);
-            console.log("Evaluated gate " + i + ": " + garbled_table);
+            evaluatedLabel = this.evaluate_gate(i, garbled_table);
+            console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
         }
         else{
-            this.evaluate_gate(i, garbled_table);
-            console.log("Evaluated gate " + i);
+            evaluatedLabel = this.evaluate_gate(i, garbled_table);
+            console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
         }
     }
 

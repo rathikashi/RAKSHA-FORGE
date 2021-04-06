@@ -110,17 +110,17 @@ gc.prototype.garble_AND_gate = function(label_a, label_b, gate_id, alphas){
 	/********** Sending the table to the evaluator **********/
 	
 	//Converting the garbled table entries to a string
-	var table_entries = [];
-	for (let i = 0; i < array_length; i++) {
-		table_entries[i] = String.fromCharCode(garbled_table[0][i]);
-	}
+	var table_entries = [garbled_table[0],garbled_table[1]];
+	// for (let i = 0; i < array_length; i++) {
+	// 	table_entries[i] = String.fromCharCode(garbled_table[0][i]);
+	// }
 
-	// table_entries = [];
-	for (let i = array_length; i < array_length * 2; i++) {
-		table_entries[i] = String.fromCharCode(garbled_table[1][i-array_length]);
-	}
+	// // table_entries = [];
+	// for (let i = array_length; i < array_length * 2; i++) {
+	// 	table_entries[i] = String.fromCharCode(garbled_table[1][i-array_length]);
+	// }
 
-	table_entries = table_entries.join(''); //send this
+	// table_entries = table_entries.join(''); //send this
 
 	// console.log("table_entries: " + table_entries);
 
@@ -161,21 +161,21 @@ gc.prototype.evaluate_AND_gate= function(label_a, label_b, table_entries, gate_i
 
 	//var table_entries; // Recieve this
 
-	var entry1 = new Uint16Array(8);
+	// var entry1 = new Uint16Array(8);
 
-	for (let i = 0; i < array_length; i++) {
-		entry1[i] = table_entries.charCodeAt(i);
-	}
+	// for (let i = 0; i < array_length; i++) {
+	// 	entry1[i] = table_entries.charCodeAt(i);
+	// }
 
-	garbled_table[0] = entry1;
+	garbled_table[0] = table_entries[0];
 
-	var entry2 = new Uint16Array(8);
+	// var entry2 = new Uint16Array(8);
 
-	for (let i = array_length; i < array_length * 2; i++) {
-		entry2[i - array_length] = table_entries.charCodeAt(i);
-	}
+	// for (let i = array_length; i < array_length * 2; i++) {
+	// 	entry2[i - array_length] = table_entries.charCodeAt(i);
+	// }
 
-	garbled_table[1] = entry2;
+	garbled_table[1] = table_entries[1];
 
 	// console.log("recieved_table0: " + garbled_table[0]);
 	// console.log("recieved_table1: " + garbled_table[1]);

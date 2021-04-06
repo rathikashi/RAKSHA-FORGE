@@ -66,10 +66,10 @@ function encrypt_generic(plaintext, key, id){
 export const OT_send = async (gate_id,m0, m1) => { 
 	const c = 0;
 	const a = sodium.crypto_core_ristretto255_scalar_random();
-	console.log("m0: " + m0);
-	console.log("m1: " + m1);
+	//console.log("m0: " + m0);
+	//console.log("m1: " + m1);
 	let A = sodium.crypto_scalarmult_ristretto255_base(a);
-	//console.log("A: " + A);
+	////console.log("A: " + A);
 	A = Uint8Array.from(A);
 
 	//Send A
@@ -78,19 +78,19 @@ export const OT_send = async (gate_id,m0, m1) => {
 	//Recieve B
 	let B = await Room.Receive()//.then(function (B){
 		B = JSON.parse(B);
-		//console.log("Received: ");
-		//console.log(B);
+		////console.log("Received: ");
+		////console.log(B);
 
-		console.log("B: ");
-		console.log(B);
+		//console.log("B: ");
+		//console.log(B);
 
 		B = Uint8Array.from(B);
-		console.log("B: ");
-		console.log(B);
-		//console.log("B after Uint16Array: ");
+		////console.log("B: ");
 		//console.log(B);
-		//console.log("a: " + a);
-		//console.log("length of a: " + a.length);
+		////console.log("B after Uint16Array: ");
+		////console.log(B);
+		////console.log("a: " + a);
+		////console.log("length of a: " + a.length);
 		let k0 = sodium.crypto_scalarmult_ristretto255(a, B);
 		let k1 = sodium.crypto_scalarmult_ristretto255(a, sodium.crypto_core_ristretto255_sub(B, A));
 
@@ -118,11 +118,11 @@ export const OT_receive = (c, gate_id) => {
 		let A = Room.Receive().then(function (A) {
 		A = JSON.parse(A);
 		A = Uint8Array.from(A);
-		//console.log("A on being received: ");
-		//console.log(A);
+		////console.log("A on being received: ");
+		////console.log(A);
 		//A = Uint8Array.from(A);
-		//console.log("A after Uint16Array: ");
-		//console.log(A);
+		////console.log("A after Uint16Array: ");
+		////console.log(A);
 		if (c === 1) {
 		  B = sodium.crypto_core_ristretto255_add(A, B);
 		}
@@ -132,17 +132,17 @@ export const OT_receive = (c, gate_id) => {
 		Room.outsendMessage(JSON.stringify(Array.from(B)));
 		let e = Room.Receive().then(function (e) {
 		  e = JSON.parse(e);
-		  //console.log("Received e:");
-		  //console.log(e);
+		  ////console.log("Received e:");
+		  ////console.log(e);
 		  let k = sodium.crypto_scalarmult_ristretto255(b, A);
 		  k = sodium.crypto_generichash(16, k);
 
-		  //console.log('C:' + c);
-		  //console.log('e[c]:');
-		  //console.log(e[c]);
+		  ////console.log('C:' + c);
+		  ////console.log('e[c]:');
+		  ////console.log(e[c]);
 
 
-		  console.log("OT output: " + encrypt_generic(e[c], k, gate_id));
+		  //console.log("OT output: " + encrypt_generic(e[c], k, gate_id));
 		  resolve(encrypt_generic(e[c], k, gate_id));
 		});
 	  });
@@ -153,8 +153,8 @@ export const OT_receive = (c, gate_id) => {
 sodium.ready.then(function () {
 	let a = random_label(8);
 	let b = random_label(8);
-	// console.log("a: " + a);
-	// console.log("b: " + b);
+	// //console.log("a: " + a);
+	// //console.log("b: " + b);
 	//const ans = OT_send(a, b, 3);
-	//console.log("ans: " + ans);
+	////console.log("ans: " + ans);
 });
