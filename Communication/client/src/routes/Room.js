@@ -284,6 +284,9 @@ const Room = (props) => {
 
     function handleChange(e) {
         let u_input = e.target.value.split('').map(Number);
+        console.log(u_input);
+        u_input = u_input.reverse();
+        console.log(u_input);
         if(role === 'Garbler'){
             garble_input = u_input;
             console.log('input:');
@@ -380,7 +383,11 @@ const Room = (props) => {
             setMessages(messages => [...messages, {yours: false, value: "Evaluating Circuit"}]);
             setText("");
             let output = await parsedCircuit.garble();
-            output = parseInt(output,2);
+            // output = parseInt(output,2);
+            console.log(output);
+            console.log(typeof output);
+            output = output.split("").reverse().join("");
+            console.log(output);
             setMessages(messages => [...messages, {yours: false, value: "Output is " + output}]);
             setText("");
             console.log("Done");
