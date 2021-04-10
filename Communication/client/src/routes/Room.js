@@ -368,6 +368,8 @@ const Room = (props) => {
             // });
         
             // outsendMessage(JSON.stringify(circuitFile));
+
+            var startTime = new Date().getTime();
             let parsedCircuit = main.parsecircuit(circuitFile);
             console.log(parsedCircuit);
             parsedCircuit.generateLabels();
@@ -390,6 +392,10 @@ const Room = (props) => {
             console.log(output);
             setMessages(messages => [...messages, {yours: false, value: "Output is " + output}]);
             setText("");
+            var endTime = new Date().getTime();
+            setMessages(messages => [...messages, {yours: false, value: "Time taken: " + ((endTime-startTime)/1000.0).toString() + " seconds"}]);
+            setText("");
+            console.log("Time taken: " + endTime-startTime);
             console.log("Done");
         }
         else if (role === "Evaluator"){
