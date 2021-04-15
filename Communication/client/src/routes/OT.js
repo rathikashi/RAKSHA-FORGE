@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 var sodium = require('libsodium-wrappers-sumo');
 var Room = require('./Room.js');
+var Helper = require('./Helper.js');
+var helper = new Helper();
 
 var array_length = 8;
 
@@ -69,24 +71,25 @@ export const OT_send = async (gate_id,m0, m1) => {
 	//console.log("m0: " + m0);
 	//console.log("m1: " + m1);
 	let A = sodium.crypto_scalarmult_ristretto255_base(a);
-	////console.log("A: " + A);
-	A = Uint8Array.from(A);
+	// console.log("A: ");
+	// console.log(A);
+	// A = Uint8Array.from(A);
 
 	//Send A
-	Room.outsendMessage(JSON.stringify(Array.from(A)));
+	Room.outsendMessage(helper.arrayToBuffer(A));
 
 	//Recieve B
 	let B = await Room.Receive()//.then(function (B){
-		B = JSON.parse(B);
+		//B = JSON.parse(B);
 		////console.log("Received: ");
 		////console.log(B);
 
-		//console.log("B: ");
-		//console.log(B);
+		// console.log("B: ");
+		// console.log(B);
 
-		B = Uint8Array.from(B);
-		////console.log("B: ");
-		//console.log(B);
+		B = new Uint8Array(B);
+		// console.log("B after receiving: ");
+		// console.log(B);
 		////console.log("B after Uint16Array: ");
 		////console.log(B);
 		////console.log("a: " + a);
@@ -103,7 +106,8 @@ export const OT_send = async (gate_id,m0, m1) => {
 		let e = [e0,e1];
 
 		//Send e
-		Room.outsendMessage(JSON.stringify(e));
+		Room.outsendMessage(helper.arrayToBuffer(e0));
+		Room.outsendMessage(helper.arrayToBuffer(e1));
 	//});
 
 
@@ -116,8 +120,13 @@ export const OT_receive = (c, gate_id) => {
   
 	return new Promise(function (resolve) {
 		let A = Room.Receive().then(function (A) {
-		A = JSON.parse(A);
-		A = Uint8Array.from(A);
+		// A = JSON.parse(A);
+		// A = Uint8Array.from(A);
+		// console.log("A after receiving before converting to uint8array");
+		// console.log(A);
+		A = new Uint8Array(A);
+		// console.log("A after receiving");
+		// console.log(A);
 		////console.log("A on being received: ");
 		////console.log(A);
 		//A = Uint8Array.from(A);
@@ -127,23 +136,30 @@ export const OT_receive = (c, gate_id) => {
 		  B = sodium.crypto_core_ristretto255_add(A, B);
 		}
 
-		B = Uint8Array.from(B);
+		// console.log("B: ");
+		// console.log(B);
+		// B = Uint8Array.from(B);
   
-		Room.outsendMessage(JSON.stringify(Array.from(B)));
-		let e = Room.Receive().then(function (e) {
-		  e = JSON.parse(e);
-		  ////console.log("Received e:");
-		  ////console.log(e);
-		  let k = sodium.crypto_scalarmult_ristretto255(b, A);
-		  k = sodium.crypto_generichash(16, k);
+		Room.outsendMessage(helper.arrayToBuffer(B));
+		let e0 = Room.Receive().then(function (e0) {
+			let e1 = Room.Receive().then(function (e1) {
+			//e = JSON.parse(e);
+			////console.log("Received e:");
+			////console.log(e);
+			e0 = new Uint16Array(e0);
+			e1 = new Uint16Array(e1);
+			var e = [e0,e1];
+			let k = sodium.crypto_scalarmult_ristretto255(b, A);
+			k = sodium.crypto_generichash(16, k);
 
-		  ////console.log('C:' + c);
-		  ////console.log('e[c]:');
-		  ////console.log(e[c]);
+			////console.log('C:' + c);
+			////console.log('e[c]:');
+			////console.log(e[c]);
 
 
-		  //console.log("OT output: " + encrypt_generic(e[c], k, gate_id));
-		  resolve(encrypt_generic(e[c], k, gate_id));
+			//console.log("OT output: " + encrypt_generic(e[c], k, gate_id));
+			resolve(encrypt_generic(e[c], k, gate_id));
+			});
 		});
 	  });
 	});

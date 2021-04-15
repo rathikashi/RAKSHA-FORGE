@@ -114,7 +114,7 @@ Circuit.prototype.send_labels = async function(input){
         }
 
         console.log("directly sending: " + label);
-        Room.outsendMessage(JSON.stringify(Array.from(label)));
+        Room.outsendMessage(helper.arrayToBuffer(label));
     }
 
     //Sending evaluator input through OT
@@ -134,7 +134,7 @@ Circuit.prototype.receive_labels = async function(evaluatorInput){
     //receiving garbler input
     for (let i = 0; i < this.garbler_input_size; i++){
         this.wire_labels[i] = await Room.Receive();
-        this.wire_labels[i] = Uint16Array.from(JSON.parse(this.wire_labels[i]));
+        this.wire_labels[i] = new Uint16Array(this.wire_labels[i]);
         console.log("directly received: " + this.wire_labels[i]);
     }
 
@@ -217,8 +217,9 @@ Circuit.prototype.garble = async function(){
         if(garbled_table !== 0){
             //Send that Shit!!!
             console.log("sending garbled table for gate " + i + ": " + garbled_table)
-            Room.outsendMessage(JSON.stringify(Array.from(garbled_table[0])));
-            Room.outsendMessage(JSON.stringify(Array.from(garbled_table[1])));
+            
+            Room.outsendMessage(helper.arrayToBuffer(garbled_table[0]));
+            Room.outsendMessage(helper.arrayToBuffer(garbled_table[1]));
 
         }
         
@@ -241,8 +242,8 @@ Circuit.prototype.garble = async function(){
     let output = "";
     for( let i = startOfOutputWires; i < this.wires_count; i++){
         outputWireLabel = await Room.Receive();
-        outputWireLabel = JSON.parse(outputWireLabel);
-		outputWireLabel = Uint16Array.from(outputWireLabel);
+        //outputWireLabel = JSON.parse(outputWireLabel);
+		outputWireLabel = new Uint16Array(outputWireLabel);
         console.log("wire received from evaluator: ");
         console.log(outputWireLabel.toString());
         console.log('If output is 1');
@@ -284,12 +285,14 @@ Circuit.prototype.evaluate = async function(){
         if(!HAS_NO_GARBLED_TABLE.includes(this.gates[i].operation)){
             //Recieve Garbled table
             garbled_table_0 = await Room.Receive()
-            garbled_table_0 = JSON.parse(garbled_table_0);
-		    garbled_table_0 = Uint16Array.from(garbled_table_0);
+            // garbled_table_0 = JSON.parse(garbled_table_0);
+		    // garbled_table_0 = Uint16Array.from(garbled_table_0);
+            garbled_table_0 = new Uint16Array(garbled_table_0);
 
             garbled_table_1 = await Room.Receive()
-            garbled_table_1 = JSON.parse(garbled_table_1);
-		    garbled_table_1 = Uint16Array.from(garbled_table_1);
+            // garbled_table_1 = JSON.parse(garbled_table_1);
+		    // garbled_table_1 = Uint16Array.from(garbled_table_1);
+            garbled_table_1 = new Uint16Array(garbled_table_1);
 
             garbled_table = [garbled_table_0, garbled_table_1];
             //garbled_table = JSON.parse(garbled_table);
@@ -309,7 +312,7 @@ Circuit.prototype.evaluate = async function(){
         console.log(this.wire_labels);
         for( let i = startOfOutputWires; i < this.wires_count; i++){
             console.log("output wire " + i);
-            Room.outsendMessage(JSON.stringify(Array.from(this.wire_labels[i])));
+            Room.outsendMessage(helper.arrayToBuffer(this.wire_labels[i]));
             console.log(this.wire_labels[i]);
             // if(this.wire_labels[i].toString() == this.garbler_wire_labels[i].toString()){
             //     console.log("0\n");

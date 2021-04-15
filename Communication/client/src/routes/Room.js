@@ -174,7 +174,7 @@ const Room = (props) => {
     const [messages, setMessages] = useState([]);
 
     useEffect(() => {
-        socketRef.current = io.connect("http://10.1.37.203:8000");
+        socketRef.current = io.connect("http://10.1.39.239:8000");
         socketRef.current.emit("join room", props.match.params.roomID);
 
         socketRef.current.on('other user', userID => {
@@ -199,6 +199,7 @@ const Room = (props) => {
         peerRef.current = createPeer(userID);
         sendChannel.current = peerRef.current.createDataChannel("sendChannel");
         sendChannel.current.onmessage = handleReceiveMessage;
+        sendChannel.current.binaryType = "arraybuffer";
     }
 
     // function handleReceiveMessage(e){
@@ -341,6 +342,7 @@ const Room = (props) => {
     //   this.handleFiles = this.handleFiles.bind(this);
 
     async function testFile(){
+        sendChannel.current.binaryType = "arraybuffer";
         if(role === "Garbler"){
             // circuitFile.arrayBuffer()
             // .then(buffer => {

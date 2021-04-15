@@ -44,6 +44,7 @@ Helper.prototype.random_label = function (size){
     }
 
     return label;
+	//return new Uint8Array(random);
 }
 
 //Funcion to xor two Uint16Array variables
@@ -84,6 +85,12 @@ Helper.prototype.hash = function (key, id){
 	}
 
 	return this.xor(permutation, k);
+}
+
+//Converts given typed array to an arraybuffer
+Helper.prototype.arrayToBuffer = function (arr){
+	var buffer = arr.buffer.slice(arr.byteOffset, arr.byteLength + arr.byteOffset);
+	return buffer
 }
 
 module.exports = Helper;
