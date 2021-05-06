@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import styled from "styled-components";
 import ReactFileReader from "react-file-reader";
+
 let circuit_gate = require('./circuit.js');
 const Circuit =  circuit_gate.Circuit;
 const Gate = circuit_gate.Gate;
@@ -19,72 +20,164 @@ var test_circuit = new Circuit();
 var sendChannel;
 
 const Container = styled.div`
+    width: 100vw;
     height: 100vh;
-    width: 50%;
-    margin: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display: grid;
+    grid-template-rows: 1fr 8fr 1fr;
+    grid-template-areas:
+    "h h h"
+    "s m m"
+    "f f f";
+`;
+
+const Header = styled.div`
+grid-area: h;
+margin-top:1%;
+color: #e3dcd2;
+font-size: 3em;
+font-weight: bold;
+background: #2d394e;
+`;
+
+const Sidebar = styled.div`
+grid-area: s;
+`;
+
+const Maincontent = styled.div`
+background: #f7f1f0;
+margin-top: 5%;
+margin-bottom: 5%;
+margin-right: 35px;
+grid-area: m;
+color: #2d394e;
+border-radius: 10px;
+`;
+
+const Footer = styled.div`
+grid-area: f;
+align-self: end;
+color: #e3dcd2;
+background: #2d394e;
+`;
+
+const Card = styled.div`
+height: 20%;
+width: 80%;
+background: #e3dcd2;
+color: #2d394e;
+margin: auto;
+justify-self: stretch;
+align-self: auto;
+border-radius: 10px;
+`;
+
+
+const CardSpace = styled.div`
+height: 10%;
+margin: auto;
+background: #2d394e;
+justify-self: stretch;
+align-self: auto;
+`;
+
+const VertCardG = styled.div`
+  padding: 20px;
+  border: 2px solid rgb(96, 139, 168);
+  border-radius: 5px;
+  background-color: #b1b3b5;
+  width: 5%;
+  height: 80%;
+  margin-left: 10px;
+`;
+
+const VertCardE = styled.div`
+padding: 20px;
+border: 2px solid rgb(96, 139, 168);
+border-radius: 5px;
+background-color: #37399a;
+width: 5%;
+height: 80%;
+margin-right: 10px;
 `;
 
 const Messages = styled.div`
     width: 100%;
-    height: 60%;
-    border: 1px solid black;
+    height: 100%;
     margin-top: 10px;
-    overflow: scroll;
+    overflow-y: scroll;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-content: space-between;
 `;
 
 const MessageBox = styled.textarea`
-    width: 100%;
-    height: 30%;
+    width: 80%;
+    height: 20%;
+
 `;
 
 const Button = styled.div`
-    width: 50%;
-    border: 1px solid black;
-    margin-top: 15px;
-    height: 5%;
+    width: 40%;
     border-radius: 5px;
     cursor: pointer;
-    background-color: black;
-    color: white;
+    background-color: #3b8ac4;
+    color: #e3dcd2;
     font-size: 18px;
+    font-weight: bold;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 50px;
+    padding-right: 50px;
+    margin: auto;
 `;
 
 const MyRow = styled.div`
   width: 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 10px;
 `;
 
 const MyMessage = styled.div`
-  width: 45%;
-  background-color: blue;
-  color: white;
-  padding: 10px;
-  margin-right: 5px;
-  text-align: center;
-  border-top-right-radius: 10%;
-  border-bottom-right-radius: 10%;
+padding: 10px;
+background-color: #786FA2;
+width: 50%;
+text-align: center;
+font: 400 1.1em 'Open Sans', sans-serif;
+color: white;
+border: 1px solid #97C6E3;
+border-radius: 10px;
+display: inline-block;
+height: auto;
+word-wrap: break-word;
+}
 `;
 
 const PartnerRow = styled(MyRow)`
-  justify-content: flex-start;
+  justify-content: center;
 `;
 
 const PartnerMessage = styled.div`
-  width: 45%;
-  background-color: grey;
-  color: white;
-  border: 1px solid lightgray;
-  padding: 10px;
-  margin-left: 5px;
-  text-align: center;
-  border-top-left-radius: 10%;
-  border-bottom-left-radius: 10%;
+padding: 10px;
+background-color: #b1b3b5;
+width: 50%;
+text-align: center;
+font: 400 1.1em 'Open Sans', sans-serif;
+border: 1px solid #dfd087;
+border-radius: 10px;
+display: inline-block;
+height: auto;
+word-wrap: break-word;
 `;
+
+const fileButton = styled.div`
+   width:100px;
+   height:40px;
+   position:relative;
+`;
+
+
 
 // export const testFunc = () => {
 //     console.log('Works!');
@@ -174,7 +267,9 @@ const Room = (props) => {
     const [messages, setMessages] = useState([]);
 
     useEffect(() => {
-        socketRef.current = io.connect("http://10.1.39.239:8000");
+        socketRef.current = io.connect("http://localhost:8000");
+        console.log('herenow');
+        console.log(socketRef.current.id);
         socketRef.current.emit("join room", props.match.params.roomID);
 
         socketRef.current.on('other user', userID => {
@@ -235,6 +330,8 @@ const Room = (props) => {
                 caller: socketRef.current.id,
                 sdp: peerRef.current.localDescription
             };
+            console.log('SOCKETREF');
+            console.log(socketRef.current.id);
             socketRef.current.emit("offer", payload);
         }).catch(e => console.log(e));
     }
@@ -344,47 +441,18 @@ const Room = (props) => {
     async function testFile(){
         sendChannel.current.binaryType = "arraybuffer";
         if(role === "Garbler"){
-            // circuitFile.arrayBuffer()
-            // .then(buffer => {
-            //   /**
-            //    * A chunkSize (in Bytes) is set here
-            //    * I have it set to 16KB
-            //    */
-            //   const chunkSize = 16 * 1024;
-        
-            //   // Keep chunking, and sending the chunks to the other peer
-            //   while(buffer.byteLength) {
-            //     const chunk = buffer.slice(0, chunkSize);
-            //     buffer = buffer.slice(chunkSize, buffer.byteLength);
-                
-            //     // Off goes the chunk!
-            //     // peer1.send(chunk);
-            //     outsendMessage(chunk)
-            //   }
-        
-            //   // End message to signal that all chunks have been sent
-            //   outsendMessage('All chunks sent!');
-            // //   return new Promise(function (resolve){
-            // //     resolve();
-            // // })
-            // });
-        
-            // outsendMessage(JSON.stringify(circuitFile));
-
             var startTime = new Date().getTime();
             let parsedCircuit = main.parsecircuit(circuitFile);
             console.log(parsedCircuit);
             parsedCircuit.generateLabels();
-            setMessages(messages => [...messages, {yours: false, value: "circuit parsed"}]);
+            setMessages(messages => [...messages, {yours: true, value: "Circuit parsed"}]);
             setText("");
             let input = [1,1];
-            setMessages(messages => [...messages, {yours: false, value: "Sending input labels through Oblivious transfer"}]);
+            setMessages(messages => [...messages, {yours: true, value: "Sending input labels through Oblivious transfer"}]);
             setText("");
             await parsedCircuit.send_labels(garble_input);
-            setMessages(messages => [...messages, {yours: true, value: "Received the input labels"}]);
-            setText("");
             console.log("This should print later");
-            setMessages(messages => [...messages, {yours: false, value: "Evaluating Circuit"}]);
+            setMessages(messages => [...messages, {yours: true, value: "Pipelined execution: Garbling taking place"}]);
             setText("");
             let output = await parsedCircuit.garble();
             // output = parseInt(output,2);
@@ -392,31 +460,31 @@ const Room = (props) => {
             console.log(typeof output);
             output = output.split("").reverse().join("");
             console.log(output);
-            setMessages(messages => [...messages, {yours: false, value: "Output is " + output}]);
+            setMessages(messages => [...messages, {yours: true, value: "Output is " + output}]);
             setText("");
             var endTime = new Date().getTime();
-            setMessages(messages => [...messages, {yours: false, value: "Time taken: " + ((endTime-startTime)/1000.0).toString() + " seconds"}]);
+            setMessages(messages => [...messages, {yours: true, value: "Time taken: " + ((endTime-startTime)/1000.0).toString() + " seconds"}]);
             setText("");
             console.log("Time taken: " + endTime-startTime);
             console.log("Done");
         }
         else if (role === "Evaluator"){
-                // let circuitFile = await Receive();
-                // if(circuitFile == 'All chunks sent!'){
-                //      file = new Blob(fileChunks);
-                //      console.log(file);
-                // }
-                // else{
-                //     fileChunks.push(circuitFile);
-                // }
                 let parsedCircuit = main.parsecircuit(circuitFile);
                 console.log(parsedCircuit);
+                setMessages(messages => [...messages, {yours: false, value: "Circuit parsed"}]);
+                setText("");
                 let input = [1,0];
                 await parsedCircuit.receive_labels(eval_input);
+                setMessages(messages => [...messages, {yours: false, value: "Received the input labels"}]);
+                setText("");
                 console.log("this should print later");
                 console.log(parsedCircuit);
+                setMessages(messages => [...messages, {yours: false, value: "Pipelined execution: Evaluation taking place"}]);
+                setText("");
                 await parsedCircuit.evaluate();
                 console.log("Done");
+                setMessages(messages => [...messages, {yours: false, value: "Output received by Garbler"}]);
+                setText("");
             
         }
     }
@@ -459,19 +527,54 @@ const Room = (props) => {
 
     return (
         <Container>
-            <Messages>
-                {messages.map(renderMessage)}
-            </Messages>
-            <MessageBox value={text} onChange={handleChange} placeholder="Say something....." />
-            <div>
-                <input type="file" onChange={(e) => 
+        <Header>
+        {/* <img src="raksha-logo.png"></img> */}
+        RAKSHA-FORGE
+        </Header>
+        <Sidebar>
+            <CardSpace></CardSpace>
+            <Card>
+                <div style={{fontWeight: "bold", fontSize: "1.5em"}}>Step 1: Choose Role</div>
+                <p></p>
+                <p></p>
+                <div onChange = {assignRole}>
+                    <input id="GarblerChoice" type="radio" value="Garbler" name="role"/>
+                    <label for="GarblerChoice">Garbler</label>
+                    <input id="EvalChoice" type="radio" value="Evaluator" name="role"/>
+                    <label for="EvalChoice">Evaluator</label>
+                </div>
+            </Card>
+            <CardSpace></CardSpace>
+            <Card>
+                <div style={{fontWeight: "bold", fontSize: "1.5em"}}>Step 2: Pick A Circuit</div>
+                <p></p>
+                <p></p>
+                <div><input id= "circuitfile" type="file" onChange={(e) => 
                     handleFiles(e)} />
+                </div>
+            </Card>
+            <CardSpace></CardSpace>
+            <Card>
+                <div style={{fontWeight: "bold", fontSize: "1.5em"}}>Step 3: Enter Input</div>
+                <p></p>
+                <MessageBox value={text} onChange={handleChange} placeholder="Enter the input string in Binary" />
+            </Card>
+            <CardSpace></CardSpace>
+            <Button onClick={testFile}>Execute</Button>
+        </Sidebar>
+        <Maincontent>
+            <div style={{fontWeight: "bold", fontSize: "1.5em"}}>
+                Progress Update
             </div>
-            <div onChange = {assignRole}>
-                <input type="radio" value="Garbler" name="role" /> Garbler
-                <input type="radio" value="Evaluator" name="role" /> Evaluator
-            </div>
-            <Button onClick={testFile}>Send..</Button>
+            <Messages>
+                    {messages.map(renderMessage)}
+            </Messages> 
+        </Maincontent>
+        <Footer>
+        
+        
+        © Garbled Circuit Execution by Rathi Kashi and Shivam Agarwal
+        </Footer>
             
         </Container>
     );

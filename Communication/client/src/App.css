@@ -1,6 +1,7 @@
 .App {
   text-align: center;
-  background-image: url("https://d2slcw3kip6qmk.cloudfront.net/marketing/techblog/cryptography-a-simple-overview-header@2x.png");
+  background: #2d394e;
+  /* background-image: url("https://d2slcw3kip6qmk.cloudfront.net/marketing/techblog/cryptography-a-simple-overview-header@2x.png"); */
 }
 
 .App-logo {

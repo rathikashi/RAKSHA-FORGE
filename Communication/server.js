@@ -24,6 +24,13 @@ io.on("connection", socket => {
         }
     });
 
+    console.log(rooms);
+
+    socket.on("get rooms", sender => {
+        console.log(sender);
+        io.to(sender).emit("get rooms", rooms);
+    });
+
     socket.on("offer", payload => {
         io.to(payload.target).emit("offer", payload);
     });
@@ -37,4 +44,4 @@ io.on("connection", socket => {
     });
 });
 
-server.listen(8000, '10.1.37.203',  () => console.log('server is running on port 8000'));
+server.listen(8000, 'localhost',  () => console.log('server is running on port 8000'));

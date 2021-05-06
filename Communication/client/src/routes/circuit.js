@@ -10,6 +10,10 @@ var GC = require('./garbling.js');
 const { OT_receive } = require('./OT.js');
 var gc = new GC('garbler');      //Cant say garbler universally
 
+var recieveTime;
+var startTime;
+var endTime;
+
 const RECOGNIZED_OPERATIONS = ['AND', 'XOR', 'INV', 'NOT', 'LOR'];    //Valid operaations in the Bristol Format circuit
 const HAS_NO_GARBLED_TABLE = ['XOR', 'NOT'];    // Can be used for readability
 
@@ -275,6 +279,7 @@ Circuit.prototype.evaluate = async function(){
     const number_of_gates = this.gates.length;
     console.log("number of gates: " + number_of_gates);
     var evaluatedLabel;
+    recieveTime = 0;
     for( let i = 0; i < number_of_gates; i++){
         let garbled_table = 0;
         var garbled_table_0;
@@ -283,6 +288,7 @@ Circuit.prototype.evaluate = async function(){
         //Receive garbled table if the gate requires it
         console.log("Evaluating gate " + i + ": " + this.gates[i].operation);
         if(!HAS_NO_GARBLED_TABLE.includes(this.gates[i].operation)){
+            startTime = new Date().getTime();
             //Recieve Garbled table
             garbled_table_0 = await Room.Receive()
             // garbled_table_0 = JSON.parse(garbled_table_0);
@@ -293,6 +299,10 @@ Circuit.prototype.evaluate = async function(){
             // garbled_table_1 = JSON.parse(garbled_table_1);
 		    // garbled_table_1 = Uint16Array.from(garbled_table_1);
             garbled_table_1 = new Uint16Array(garbled_table_1);
+
+            endTime = new Date().getTime();
+            
+            recieveTime += endTime - startTime;
 
             garbled_table = [garbled_table_0, garbled_table_1];
             //garbled_table = JSON.parse(garbled_table);
@@ -305,6 +315,8 @@ Circuit.prototype.evaluate = async function(){
             console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
         }
     }
+
+    console.log("Time taken for recieving garbled tables: " + ((recieveTime)/1000.0).toString());
 
         //TESTING
         const startOfOutputWires = this.wires_count - this.output_size;

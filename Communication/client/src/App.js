@@ -12,7 +12,7 @@ function App() {
       <BrowserRouter>
         <Switch>
           <Route path="/" exact component={CreateRoom} />
-          <Route path="/choosecircuit" exact component = {ChooseCircuit} />
+          <Route path="/choosecircuit" component = {ChooseCircuit} />
           <Route path="/room/:roomID" component={Room} />
         </Switch>
       </BrowserRouter>
