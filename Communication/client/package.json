@@ -22,7 +22,7 @@
     "uuid": "^8.3.0"
   },
   "scripts": {
-    "start": "HOST=10.1.37.203 react-scripts start",
+    "start": "HOST=localhost react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
