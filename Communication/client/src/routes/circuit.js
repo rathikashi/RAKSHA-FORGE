@@ -14,6 +14,8 @@ var recieveTime;
 var startTime;
 var endTime;
 
+let BUFFER_SIZE = 159400;
+
 const RECOGNIZED_OPERATIONS = ['AND', 'XOR', 'INV', 'NOT', 'LOR'];    //Valid operaations in the Bristol Format circuit
 const HAS_NO_GARBLED_TABLE = ['XOR', 'NOT'];    // Can be used for readability
 
@@ -215,16 +217,32 @@ Circuit.prototype.evaluate_gate = function(gate_number, garbled_table){
 //garble the circuit
 Circuit.prototype.garble = async function(){
     const number_of_gates = this.gates.length;
+    let garbled_table;
+    let garbled_table_buffer = [];
+    let counter = 0; 
     for( let i = 0; i < number_of_gates; i++){
-        let garbled_table = this.garble_gate(i);
+        garbled_table = this.garble_gate(i);
 
         if(garbled_table !== 0){
             //Send that Shit!!!
-            console.log("sending garbled table for gate " + i + ": " + garbled_table)
+            // console.log("sending garbled table for gate " + i + ": " + garbled_table)
             
-            Room.outsendMessage(helper.arrayToBuffer(garbled_table[0]));
-            Room.outsendMessage(helper.arrayToBuffer(garbled_table[1]));
+            // Room.outsendMessage(helper.arrayToBuffer(garbled_table[0]));
+            // Room.outsendMessage(helper.arrayToBuffer(garbled_table[1]));
 
+            garbled_table_buffer.push([Array.from(garbled_table[0]), Array.from(garbled_table[1])]);
+            counter+=1;
+
+        }
+
+        if(counter == BUFFER_SIZE){
+            console.log("garbled_table_buffer: ");
+            console.log(garbled_table_buffer);
+            console.log("Size of tables: " + Buffer.from(JSON.stringify(garbled_table_buffer)).length + "byte");
+            console.log("length of garbled_table_buffer: " + garbled_table_buffer.length);
+            Room.outsendMessage(JSON.stringify(garbled_table_buffer));
+            garbled_table_buffer = [];
+            counter = 0;
         }
         
         //Code to test
@@ -237,6 +255,16 @@ Circuit.prototype.garble = async function(){
         // const output_wire_label = this.evaluate_gate(i, garbled_table);
         //Code to test
     }
+    // console.log("garbled_table_buffer: ");
+    // console.log(garbled_table_buffer);
+    // console.log("Size of tables: " + Buffer.from(JSON.stringify(garbled_table_buffer)).length + "byte"); //15.2372 MB for AES 128
+    if(counter > 0){
+        console.log("garbled_table_buffer: ");
+        console.log(garbled_table_buffer);
+        console.log("Size of tables: " + Buffer.from(JSON.stringify(garbled_table_buffer)).length + "byte");
+        console.log("length of garbled_table_buffer: " + garbled_table_buffer.length);
+        Room.outsendMessage(JSON.stringify(garbled_table_buffer));
+    }
 
     //TESTING
     const startOfOutputWires = this.wires_count - this.output_size;
@@ -248,24 +276,24 @@ Circuit.prototype.garble = async function(){
         outputWireLabel = await Room.Receive();
         //outputWireLabel = JSON.parse(outputWireLabel);
 		outputWireLabel = new Uint16Array(outputWireLabel);
-        console.log("wire received from evaluator: ");
-        console.log(outputWireLabel.toString());
-        console.log('If output is 1');
-        console.log((gc.garble_NOT_gate(this.wire_labels[i])).toString());
-        console.log('If output is 0');
-        console.log(this.wire_labels[i].toString());
+        // console.log("wire received from evaluator: ");
+        // console.log(outputWireLabel.toString());
+        // console.log('If output is 1');
+        // console.log((gc.garble_NOT_gate(this.wire_labels[i])).toString());
+        // console.log('If output is 0');
+        // console.log(this.wire_labels[i].toString());
         if(outputWireLabel.toString() === this.wire_labels[i].toString()){
-            console.log("0\n");
+            // console.log("0\n");
             output = output + "0";
         }
 
         else if(outputWireLabel.toString() === (gc.garble_NOT_gate(this.wire_labels[i])).toString()) {
-            console.log("1\n");
+            // console.log("1\n");
             output = output + "1";
         }
 
         else{
-            console.log("error\n");
+            // console.log("error\n");
             output = output + "error";
         }
     }
@@ -280,39 +308,64 @@ Circuit.prototype.evaluate = async function(){
     console.log("number of gates: " + number_of_gates);
     var evaluatedLabel;
     recieveTime = 0;
+    let received_tables;
+    // console.log(received_tables);
+    // console.log("garbled_tables: " + (80+(16*received_tables.length))/8 + " bytes");
+    // console.log(JSON.parse(received_tables));
+    let garbled_table_buffer;
+    //console.log(garbled_table_buffer);
+    let counter = 0;
     for( let i = 0; i < number_of_gates; i++){
         let garbled_table = 0;
         var garbled_table_0;
         var garbled_table_1;
 
         //Receive garbled table if the gate requires it
-        console.log("Evaluating gate " + i + ": " + this.gates[i].operation);
+        // console.log("Evaluating gate " + i + ": " + this.gates[i].operation);
         if(!HAS_NO_GARBLED_TABLE.includes(this.gates[i].operation)){
             startTime = new Date().getTime();
             //Recieve Garbled table
-            garbled_table_0 = await Room.Receive()
+            //garbled_table_0 = await Room.Receive()
+            
             // garbled_table_0 = JSON.parse(garbled_table_0);
 		    // garbled_table_0 = Uint16Array.from(garbled_table_0);
-            garbled_table_0 = new Uint16Array(garbled_table_0);
 
-            garbled_table_1 = await Room.Receive()
+            //garbled_table_1 = await Room.Receive()
+            
             // garbled_table_1 = JSON.parse(garbled_table_1);
 		    // garbled_table_1 = Uint16Array.from(garbled_table_1);
-            garbled_table_1 = new Uint16Array(garbled_table_1);
+
+            if(counter === 0){
+                received_tables = await Room.Receive()
+                garbled_table_buffer = JSON.parse(received_tables);
+            }
+            
+            garbled_table = garbled_table_buffer[counter];
+            counter += 1;
+            if(counter == BUFFER_SIZE){
+                counter = 0;
+            }
+            //console.log(garbled_table);
 
             endTime = new Date().getTime();
-            
+
+            //garbled_table_0 = new Uint16Array(garbled_table_0);
+            //garbled_table_1 = new Uint16Array(garbled_table_1);
+            garbled_table[0] = Uint16Array.from(garbled_table[0]);
+            garbled_table[1] = Uint16Array.from(garbled_table[1]);
+
+
             recieveTime += endTime - startTime;
 
-            garbled_table = [garbled_table_0, garbled_table_1];
+            //garbled_table = [garbled_table_0, garbled_table_1];
             //garbled_table = JSON.parse(garbled_table);
-            console.log("Received garbled table for gate " + i + ": " + garbled_table);
+            // console.log("Received garbled table for gate " + i + ": " + garbled_table);
             evaluatedLabel = this.evaluate_gate(i, garbled_table);
-            console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
+            // console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
         }
         else{
             evaluatedLabel = this.evaluate_gate(i, garbled_table);
-            console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
+            // console.log("Evaluated gate " + i + " Output wire" + this.gates[i].output_wire + ": " + evaluatedLabel);
         }
     }
 
@@ -323,9 +376,9 @@ Circuit.prototype.evaluate = async function(){
         console.log("Wire label: ");
         console.log(this.wire_labels);
         for( let i = startOfOutputWires; i < this.wires_count; i++){
-            console.log("output wire " + i);
+            // console.log("output wire " + i);
             Room.outsendMessage(helper.arrayToBuffer(this.wire_labels[i]));
-            console.log(this.wire_labels[i]);
+            // console.log(this.wire_labels[i]);
             // if(this.wire_labels[i].toString() == this.garbler_wire_labels[i].toString()){
             //     console.log("0\n");
             // }
