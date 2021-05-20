@@ -109,11 +109,11 @@ background: #2d394e;
 
 const Messages = styled.div`
     width: 450px;
-    height: 100%;
+    height: 450px;
     margin-left: auto;
     margin-right: auto;
     margin-top: 10px;
-    overflow: scroll;
+    overflow: auto;
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
@@ -383,7 +383,12 @@ const Room = (props) => {
 
     function handleChange(e) {
         let len = e.target.value.length;
-        document.getElementById('bitscount').innerHTML = 'Entered ' + len + ' bits'
+        if(base == 'Decimal'){
+            document.getElementById('bitscount').innerHTML = 'Entered ' + len + ' digits'
+        }
+        else{
+            document.getElementById('bitscount').innerHTML = 'Entered ' + len + ' bits'
+        }
         u_input = e.target.value
         setText(e.target.value)
         console.log(u_input);   
@@ -416,8 +421,10 @@ const Room = (props) => {
         console.log(e);
         reader.onload = (e) => {
             u_input = (e.target.result)
+           
         };
         reader.readAsText(e.target.files[0]);
+        
 
         
 
@@ -435,6 +442,11 @@ const Room = (props) => {
 
     function viewOutput(output, bool){
         setMessages(messages => [...messages, {yours: bool, value: "Output is: " + output}]);
+        setText("");
+    }
+
+    function viewInput(input, bool){
+        setMessages(messages => [...messages, {yours: bool, value: "Input is: " + input}]);
         setText("");
     }
 
@@ -465,6 +477,8 @@ const Room = (props) => {
                         u_input = "0" + u_input;
                 }
             }
+            setMessages(messages => [...messages, {yours: false, value: "Input is: " + u_input.split("").reverse().join("")}]);
+            setText("");
             u_input = u_input.split("").reverse().join("");
             garble_input = u_input.split('').map(Number);
             console.log('garbler input:');
@@ -478,6 +492,8 @@ const Room = (props) => {
                         u_input = "0" + u_input;
                 }
             }
+            setMessages(messages => [...messages, {yours: false, value: "Input is: " + u_input.split("").reverse().join("")}]);
+            setText("");
             u_input = u_input.split("").reverse().join("");
             eval_input = u_input.split('').map(Number);
             console.log('evaluator input:');
@@ -503,7 +519,12 @@ const Room = (props) => {
             console.log("Time taken: " + endTime-startTime);
             console.log(output);
             console.log(typeof output);
+            // if(base == "Decimal"){
+            //     garbOutput = parseInt(output.split("").reverse().join(""), 2).toString();
+            // }
+            // else{
             garbOutput = output.split("").reverse().join("");
+            // }
             console.log(garbOutput);
             outsendMessage(garbOutput);
             setMessages(messages => [...messages, {yours: true, value: "Output obtained"}]);
@@ -618,7 +639,7 @@ const Room = (props) => {
                                 <label for="BinaryChoice">Binary</label>
                 </div>
                 <p></p>
-                <MessageBox value={text} onChange={handleChange} placeholder="Enter the input string in Binary" />
+                <MessageBox value={text} onChange={handleChange} placeholder="Enter the input string in Binary/Decimal" />
                 <div id='bitscount' style={{fontSize: "10px"}}></div>
                 <p></p>
                 <div style={{fontWeight: "bold", fontSize: "1.5em"}}>OR Upload Input</div>
