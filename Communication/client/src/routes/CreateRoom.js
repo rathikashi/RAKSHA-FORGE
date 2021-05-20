@@ -1,9 +1,11 @@
+// require('dotenv').config();
 import React from "react";
 import { v1 as uuid } from "uuid";
 import ReactDOM from 'react-dom';
 import styled from "styled-components";
 import './../App.css'
 import App from "../App";
+import logo from '/Users/rathikashi/RAKSHA-FORGE/Communication/client/src/routes/RAKSHA-FORGE.png.png';
 // import {Button} from '@material-ui/core';
 
 const Container = styled.div`
@@ -21,7 +23,7 @@ const Header = styled.div`
 grid-area: h;
 margin-top:1%;
 color: #e3dcd2;
-font-size: 3em;
+font-size: 1.5em;
 font-weight: bold;
 background: #2d394e;
 `;
@@ -109,7 +111,8 @@ const CreateRoom = (props) => {
     return (
         <Container>
             <Header>
-                RAKSHA-FORGE
+                <img src={logo} alt="RAKSHA-FORGE logo" height="100px" width="110px"></img>
+                <div style={{marginTop: "30px"}}>Fast Online Runtime for GC Evaluation</div>
             </Header>
             <Maincontent1>
                 <TitleElement>What is RAKSHA-FORGE?</TitleElement>

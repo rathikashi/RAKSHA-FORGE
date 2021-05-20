@@ -3,6 +3,8 @@ import { v1 as uuid } from "uuid";
 import styled from "styled-components";
 import './../App.css'
 import io from "socket.io-client";
+import logo from '/Users/rathikashi/RAKSHA-FORGE/Communication/client/src/routes/RAKSHA-FORGE.png.png';
+// import "dotenv/config"
 // import {Button} from '@material-ui/core';
 
 const openInNewTab = (url) => {
@@ -25,9 +27,12 @@ const Header = styled.div`
 grid-area: h;
 margin-top:1%;
 color: #e3dcd2;
-font-size: 3em;
+font-size: 1.5em;
 font-weight: bold;
 background: #2d394e;
+display: flex;
+justify-content: center;
+float: left;
 `;
 
 
@@ -143,43 +148,33 @@ const TitleElementOff = styled.div`
 `;
 
 const MessageBox = styled.textarea`
-    width: 80%;
-    height: 20%;
+  width: 100%;
+  border-radius: 5px;
+  height: 35px;
+  border-color: transparent;
+  text-align: center;
 
 `;
-
-// let rooms = {};
 let user_temp = [];
-// let rnames = [];
-function waitForElement(){
-    if(typeof someVariable !== "undefined"){
-        //variable exists, do what you want
-    }
-    else{
-        setTimeout(waitForElement, 250);
-    }
-}
+let rolecard = [];
 
 const ChooseCircuit = (props) => {
     const socketRef = useRef();
-    // rooms.state = {
-    //     roomID: '', 
-    //     userIDs: []
-    // };
     let [rooms, setRooms] = useState([]);
-    // let [roomnames, setName] = useState([]);
     let [users, setUsers] = useState({});
     const [text, setText] = useState("");
-    const [messages, setMessages] = useState([]);
-    console.log('hi');
+    const [role, setRole] = useState("");
+    let [rolearr, setRolearr] = useState([]);
     console.log(socketRef);
 
     useEffect(() => {
         socketRef.current = io.connect("http://localhost:8000");
         console.log(socketRef.current);
+
         socketRef.current.on("connect", ()=>{
             console.log(socketRef.current.id);
             socketRef.current.emit("get rooms", socketRef.current.id);
+            socketRef.current.emit("get roles", socketRef.current.id);
         });
         
         socketRef.current.on("get rooms", (data)=>{
@@ -190,31 +185,80 @@ const ChooseCircuit = (props) => {
             })
             setUsers(user_temp);
             console.log(rooms.length);
-        })
+        });
+
+        socketRef.current.on("get roles", (data)=>{
+            console.log(data);
+            setRolearr(data);
+            
+        });
 
     }, []);
 
     function create() {
-        const id = uuid();
-        // setName(roomnames => [...roomnames, text]);
-        // console.log(text);
-        // console.log(roomnames);
-        props.history.replace(`/room/${id}`);
+        if(role == ''){
+            alert('Choose a role!');
+        }
+        else{
+            const id = uuid();
+            socketRef.current.emit("update roles", role);
+            console.log(role);
+            props.history.replace(`/room/${id}/${role}`);
+        }
+       
     }
 
-    // function updateName(input){
-    //     setText(input.target.value);
-    //     // setName(rnames);
-    // }
+    function handlePasscode(e){
+        setText(e.target.value);
+    }
+
+    function joinRoom(i, userrole) {
+        console.log(text);
+        console.log(i.value);
+
+        if(userrole == 'Garbler'){
+            userrole = 'Evaluator'
+        }
+        else{
+            userrole = 'Garbler'
+        }
+
+        if(text == i){
+            window.open('http://localhost:3000/room/' + i + '/' + userrole, "_self");
+        }
+        else{
+            alert('Wrong Passcode');
+        }
+        
+    }
+
+    function assignRole(e){
+        console.log(e.target.value);
+        setRole(e.target.value);
+    }
+
 
     return (
         <Container>
-            <Header>RAKSHA-FORGE</Header>
+            <Header>
+                <img src={logo} alt="RAKSHA-FORGE logo" height="100px" width="110px"></img>
+                <div style={{marginTop: "30px"}}>Fast Online Runtime for GC Evaluation</div>
+            </Header>
             <Maincontent>
                 <Card>
                     <p></p>
                     <div style={{fontWeight: "bold"}}>Create Room or Join an existing Room!</div>
-                    <p></p>
+                    <Space></Space>
+                    <Space></Space>
+                    <div style={{fontWeight: "bold"}}>Choose your role</div>
+                            <div onChange = {assignRole}>
+                                <input id="GarblerChoice" type="radio" value="Garbler" name="role"/>
+                                <label for="GarblerChoice">Garbler</label>
+                                <input id="EvalChoice" type="radio" value="Evaluator" name="role"/>
+                                <label for="EvalChoice">Evaluator</label>
+                            </div>
+                    <Space></Space>
+                    <Space></Space>
                     <Button onClick={create}>Create Room</Button>
                 </Card>
                 {rooms.map(function render(i, index){
@@ -239,7 +283,15 @@ const ChooseCircuit = (props) => {
                             {JSON.stringify(users[index])}
                             <p></p>
                             <p></p>
-                            <Button onClick={() => openInNewTab('http://localhost:3000/room/' + i)}>Join Room</Button>
+                            <MessageBox value={text} onChange = {handlePasscode} placeholder="Enter the room passcode" />
+                            <p></p>
+                            <p></p>
+                            <Button onClick={() => joinRoom(i, rolearr[index])}>Join Room</Button>
+                            <p></p>
+                            <p></p>
+                            <div>
+                                Note: {JSON.stringify(rolearr[index])} already taken!
+                            </div>
                             </Card>
                             
                         }
