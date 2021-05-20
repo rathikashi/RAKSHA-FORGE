@@ -5,8 +5,10 @@ const server = http.createServer(app);
 const socket = require("socket.io");
 const io = socket(server);
 const cors = require("cors");
+require('dotenv').config()
 
 const rooms = {};
+const roles = [];
 
 app.use(cors());
 
@@ -26,6 +28,14 @@ io.on("connection", socket => {
 
     console.log(rooms);
 
+    socket.on("update roles", role => {
+        roles.push(role);
+    });
+
+    socket.on("get roles", sender => {
+        io.to(sender).emit("get roles", roles);
+    });
+
     socket.on("get rooms", sender => {
         console.log(sender);
         io.to(sender).emit("get rooms", rooms);
@@ -44,4 +54,4 @@ io.on("connection", socket => {
     });
 });
 
-server.listen(8000, 'localhost',  () => console.log('server is running on port 8000'));
+server.listen(8000, process.env.REACT_APP_IP,  () => console.log('server is running on port 8000'));
